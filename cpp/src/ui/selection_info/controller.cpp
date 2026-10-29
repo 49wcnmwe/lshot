@@ -3,6 +3,7 @@
 #include <QSignalBlocker>
 #include <QGraphicsScene>
 #include "canvas/selection_model.h"
+#include "canvas/items/selection_item.h"
 #include "capture/capture_service.h"
 #include "core/logger.h"
 #include "settings/tool_settings.h"

@@ -441,7 +441,7 @@ void LayerEditor::apply_handle_drag(QGraphicsItem *layer, const EditHandle &hand
         if (type == HandleType::CORNER_TR || type == HandleType::CORNER_BR || type == HandleType::EDGE_R) edges |= Qt::RightEdge;
         if (type == HandleType::CORNER_TL || type == HandleType::CORNER_TR || type == HandleType::EDGE_T) edges |= Qt::TopEdge;
         if (type == HandleType::CORNER_BL || type == HandleType::CORNER_BR || type == HandleType::EDGE_B) edges |= Qt::BottomEdge;
-        set_local_rect(layer, constrain_aspect(new_rect, ratio, edges));
+        set_local_rect(layer, constrain_aspect(new_rect, ratio, edges, *base_local_rect_));
     }
 }
 

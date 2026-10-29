@@ -1,5 +1,12 @@
 #include "core/aspect_geometry.h"
 #include "canvas/items/drawing_items.h"
+#include "canvas/items/arrow_item.h"
+#include "canvas/items/selection_item.h"
+#include "canvas/items/stroke_item.h"
+#include "canvas/scene.h"
+#include "canvas/selection_model.h"
+#include "tools/line.h"
+#include "ui/selection_info/lock_ratio.h"
 #include "canvas/handle_editor.h"
 #include "canvas/undo.h"
 #include "core/save.h"
@@ -23,6 +30,60 @@ private slots:
                 const auto rect = constrain_aspect(QRectF(-100, -40, 180, 90), ratio, edges);
                 QVERIFY(std::abs(rect.width() / rect.height() - ratio) < .0001);
             }
+        }
+    }
+    void locked_corner_tracks_vertical_drags_and_minimum() {
+        const QRectF base(20,30,160,80);
+        const auto grown = constrain_aspect(QRectF(20,30,160,150),2,Qt::BottomEdge|Qt::RightEdge,base);
+        QCOMPARE(grown, QRectF(20,30,300,150));
+        SelectionModel model;
+        SelectionItem selection(&model);
+        LockRatioLogic lock(&selection);
+        lock.set_enabled(true,base);
+        auto tiny = selection.resize_constraint(QRectF(20,30,2,1),base,SelectionItem::HANDLE_BOTTOM_RIGHT);
+        model.set_rect(tiny);
+        QCOMPARE(model.rect().size(),QSizeF(16,8));
+        lock.uninstall();
+    }
+    void straight_line_and_dot() {
+        CanvasScene scene(QImage(),QRectF(0,0,400,300));
+        ToolContext ctx;
+        ctx.scene = &scene; ctx.undo_stack = scene.undo_stack;
+        ctx.color = Qt::green; ctx.stroke_width = 3;
+        LineTool line;
+        QVERIFY(line.on_press(QPointF(10,20),Qt::LeftButton,ctx));
+        line.on_move(QPointF(80,90),ctx);
+        line.on_release(QPointF(100,120),ctx);
+        StrokeItem *result = nullptr;
+        for (auto *item : scene.items()) if (auto *stroke = dynamic_cast<StrokeItem *>(item)) result = stroke;
+        QVERIFY(result);
+        QCOMPARE(result->path().elementCount(),2);
+        QCOMPARE(result->path().currentPosition(),QPointF(100,120));
+        QCOMPARE(result->data(Qt::UserRole+351).toString(),QString("line"));
+        ctx.undo_stack->undo();
+        QVERIFY(!result->scene());
+        ctx.undo_stack->redo();
+        QVERIFY(result->scene());
+        EllipseItem dot(QRectF(0,0,50,50),QPen(Qt::green,3));
+        dot.filled_dot = true;
+        QVERIFY(dot.shape().contains(QPointF(25,25)));
+    }
+    void curved_dashes_follow_shaft() {
+        for (bool double_bend : {false,true}) {
+            ArrowItem arrow(QPointF(20,150),QPointF(380,150),QPen(Qt::green,4),"line");
+            arrow.set_control_point(QPointF(200,50));
+            if (double_bend) arrow.set_bend_points(std::array<QPointF,2>{QPointF(110,100),QPointF(290,105)});
+            const auto solid = arrow.path();
+            arrow.line_style = "dashed"; arrow.update_geometry();
+            int solid_pixels = 0, dashed_pixels = 0;
+            for (int x=80;x<320;++x) for (int y=0;y<200;++y) {
+                const QPointF p(x+.5,y+.5);
+                solid_pixels += solid.contains(p);
+                dashed_pixels += arrow.path().contains(p);
+            }
+            QVERIFY(solid_pixels > 100);
+            QVERIFY(dashed_pixels > solid_pixels*.2);
+            QVERIFY(dashed_pixels < solid_pixels*.9);
         }
     }
     void radius_and_ratio_editors() {

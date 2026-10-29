@@ -55,13 +55,13 @@ const QStringList &default_order() {
 const LayoutProfile SCREENSHOT{default_order(), {"screenshot_translate", "text_recognize", "scan_code", "gif", "pen", "highlighter", "spotlight", "number", "eraser", "pin"}, {"confirm"}, SETTING_KEY};
 const LayoutProfile PIN{
     {"save", "copy",
-     "pen", "highlighter", "mosaic", "spotlight", "watermark", "arrow", "number", "rect", "ellipse", "text",
+     "pen", "highlighter", "mosaic", "spotlight", "watermark", "arrow", "line", "number", "rect", "ellipse", "text",
      "eraser",
      "undo", "redo"},
     {"spotlight", "watermark"}, {}, "pin_toolbar_layout"};
 const LayoutProfile ANNOTATION{
     {"annotation_pointer",
-     "pen", "highlighter", "arrow", "number", "rect", "ellipse", "text", "eraser",
+     "pen", "highlighter", "arrow", "line", "number", "rect", "ellipse", "text", "eraser",
      "annotation_board", "annotation_cursor",
      "undo", "redo", "annotation_clear", "annotation_hide", "annotation_exit"},
     {}, {"annotation_exit"}, "annotation_toolbar_layout"};

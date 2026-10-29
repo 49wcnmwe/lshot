@@ -9,6 +9,7 @@
 #include "canvas/undo.h"
 #include "settings/tool_settings.h"
 #include "ui/arrow_settings_panel.h"
+#include "ui/shape_settings_panel.h"
 #include "ui/text_settings_panel.h"
 #include "ui/toolbar.h"
 #include <QGraphicsScene>
@@ -24,7 +25,7 @@ bool is_drawable(QGraphicsItem *item) {
 }
 
 std::optional<ItemType> expected_type(const QString &tool_id, bool include_paths) {
-    if (include_paths && (tool_id == "pen" || tool_id == "highlighter")) return ItemType::PATH;
+    if (include_paths && (tool_id == "pen" || tool_id == "highlighter" || tool_id == "line")) return ItemType::PATH;
     if (tool_id == "rect" || tool_id == "ellipse") return ItemType::SHAPE;
     if (tool_id == "arrow") return ItemType::ARROW;
     if (tool_id == "text") return ItemType::TEXT;
@@ -94,7 +95,7 @@ bool SmartEditController::can_select_item(QGraphicsItem *item, Qt::KeyboardModif
     if (cross_tool_select_enabled && ctrl && item_type != ItemType::OTHER) return true;
     // Spotlight holes are RectItems but belong only to the spotlight tool.
     if (dynamic_cast<SpotlightItem *>(item)) return current_tool_id == "spotlight";
-    if (item_type == ItemType::PATH) return ctrl;
+    if (item_type == ItemType::PATH) return ctrl || (current_tool_id == "line" && get_item_tool_id(item) == QString("line"));
     if (current_tool_id == "highlighter" && item_type == ItemType::SHAPE) {
         auto *rect = dynamic_cast<RectItem *>(item);
         return rect && rect->is_highlighter_rect;
@@ -110,7 +111,7 @@ bool SmartEditController::can_select_item(QGraphicsItem *item, Qt::KeyboardModif
 bool SmartEditController::can_show_hover_cursor(QGraphicsItem *item) const {
     const auto item_type = get_item_type(item);
     if (dynamic_cast<SpotlightItem *>(item)) return current_tool_id == "spotlight";
-    if (item_type == ItemType::PATH) return false;
+    if (item_type == ItemType::PATH) return current_tool_id == "line" && get_item_tool_id(item) == QString("line");
     if (current_tool_id.isEmpty() || current_tool_id == "cursor") return false;
     if (current_tool_id == "highlighter" && item_type == ItemType::SHAPE) {
         auto *rect = dynamic_cast<RectItem *>(item);
@@ -396,6 +397,11 @@ void SmartEditController::on_undo_index_changed() {
         // The undone value may be what the panel shows (arrow style, font size).
         if (dynamic_cast<ArrowItem *>(item)) sync_arrow_panel_state(item);
         else if (dynamic_cast<TextItem *>(item)) sync_text_panel_state(item);
+        else if (dynamic_cast<RectItem *>(item)) {
+            auto *host = canvas_host_of_scene(scene);
+            auto *toolbar = host ? host->canvas_toolbar() : nullptr;
+            if (toolbar && toolbar->shape_panel) toolbar->shape_panel->set_state_from_item(item);
+        }
         repaint_handles();
     }
 }
@@ -404,7 +410,11 @@ void SmartEditController::sync_arrow_panel_state(QGraphicsItem *item) {
     // Pin windows may hide panels, so a missing one is silently skipped.
     auto *host = canvas_host_of_scene(scene);
     auto *toolbar = host ? host->canvas_toolbar() : nullptr;
-    if (toolbar && toolbar->arrow_panel) toolbar->arrow_panel->set_arrow_style(static_cast<ArrowItem *>(item)->_arrow_style);
+    if (toolbar && toolbar->arrow_panel) {
+        auto *arrow = static_cast<ArrowItem *>(item);
+        toolbar->arrow_panel->set_arrow_style(arrow->_arrow_style);
+        toolbar->arrow_panel->set_line_style(arrow->line_style);
+    }
 }
 
 void SmartEditController::sync_text_panel_state(QGraphicsItem *item) {

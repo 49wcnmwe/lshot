@@ -322,9 +322,12 @@ void ArrowItem::update_geometry() {
     }
     if (line_style == "dashed" && !pieces.empty()) {
         QPainterPath centre(a);
-        if (_bend_points) centre.cubicTo((*_bend_points)[0], (*_bend_points)[1], b);
-        else if (_control_modified) centre.quadTo(_control_pos, b);
-        else centre.lineTo(b);
+        if (_bend_points) {
+            for (const auto &segment : spline_segments({{a, (*_bend_points)[0], f.mid, (*_bend_points)[1], b}}))
+                centre.cubicTo(segment[1], segment[2], segment[3]);
+        } else {
+            centre.quadTo(2 * f.mid - .5 * a - .5 * b, b);
+        }
         QPainterPathStroker dash; dash.setWidth(std::max(w_a,w_b)*1.05);
         dash.setCapStyle(Qt::FlatCap); dash.setDashPattern(QVector<qreal>{4.,3.});
         pieces.front() = pieces.front().intersected(dash.createStroke(centre));

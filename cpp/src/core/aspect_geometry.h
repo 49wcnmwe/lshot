@@ -8,22 +8,30 @@ namespace jietuba {
 inline bool valid_aspect(double ratio) { return std::isfinite(ratio) && ratio > 0; }
 
 // Keeps the opposite corner fixed, or the centre on the secondary axis for edge drags.
-inline QRectF constrain_aspect(QRectF rect, double ratio, Qt::Edges moving) {
+inline QRectF constrain_aspect(QRectF rect, double ratio, Qt::Edges moving, const QRectF &base = {}, const QSizeF &minimum = QSizeF(.01, .01)) {
     rect = rect.normalized();
     if (!valid_aspect(ratio)) return rect;
     const bool horizontal = moving.testFlag(Qt::LeftEdge) || moving.testFlag(Qt::RightEdge);
     const bool vertical = moving.testFlag(Qt::TopEdge) || moving.testFlag(Qt::BottomEdge);
+    bool width_leads = horizontal;
+    if (horizontal && vertical && base.isValid())
+        width_leads = std::abs(rect.width() - base.width()) >= std::abs(rect.height() - base.height()) * ratio;
+    const double width = std::max({width_leads ? rect.width() : rect.height() * ratio, minimum.width(), minimum.height() * ratio});
+    const double height = width / ratio;
+    if (horizontal && vertical) {
+        const auto anchor = base.isValid() ? base : rect;
+        const double x = moving.testFlag(Qt::LeftEdge) ? anchor.right() - width : anchor.left();
+        const double y = moving.testFlag(Qt::TopEdge) ? anchor.bottom() - height : anchor.top();
+        return QRectF(x, y, width, height);
+    }
     if (horizontal) {
-        const double height = std::max(.01, rect.width()) / ratio;
-        if (vertical) {
-            if (moving.testFlag(Qt::TopEdge)) rect.setTop(rect.bottom() - height);
-            else rect.setBottom(rect.top() + height);
-        } else {
-            const double cy = rect.center().y();
-            rect.setTop(cy - height / 2); rect.setBottom(cy + height / 2);
-        }
+        if (moving.testFlag(Qt::LeftEdge)) rect.setLeft(rect.right() - width);
+        else rect.setRight(rect.left() + width);
+        const double cy = rect.center().y();
+        rect.setTop(cy - height / 2); rect.setBottom(cy + height / 2);
     } else if (vertical) {
-        const double width = std::max(.01, rect.height()) * ratio;
+        if (moving.testFlag(Qt::TopEdge)) rect.setTop(rect.bottom() - height);
+        else rect.setBottom(rect.top() + height);
         const double cx = rect.center().x();
         rect.setLeft(cx - width / 2); rect.setRight(cx + width / 2);
     }

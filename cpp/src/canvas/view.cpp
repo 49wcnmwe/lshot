@@ -581,7 +581,7 @@ void CanvasView::sync_selection_style_to_toolbar(QGraphicsItem *item) {
     // spotlight holes are RectItems too.
     LineStylePanel *line_style_panel = nullptr;
     if (owner_tool_id == "pen" || owner_tool_id == "highlighter") line_style_panel = toolbar->paint_panel;
-    else if (owner_tool_id == "rect" || owner_tool_id == "ellipse") line_style_panel = toolbar->shape_panel;
+    else if (owner_tool_id == "rect" || owner_tool_id == "ellipse" || owner_tool_id == "line") line_style_panel = toolbar->shape_panel;
     if (line_style_panel) {
         QPen pen;
         if (auto *stroke = dynamic_cast<QAbstractGraphicsShapeItem *>(item)) pen = stroke->pen();
