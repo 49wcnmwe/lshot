@@ -113,7 +113,7 @@ QStringList toolbar_row(Toolbar &toolbar) {
         {"screenshot_translate", toolbar.screenshot_translate_btn}, {"text_recognize", toolbar.text_recognize_btn},
         {"scan_code", toolbar.scan_code_btn}, {"gif", toolbar.gif_btn}, {"pen", toolbar.pen_btn},
         {"highlighter", toolbar.highlighter_btn}, {"mosaic", toolbar.mosaic_btn}, {"spotlight", toolbar.spotlight_btn},
-        {"watermark", toolbar.watermark_btn}, {"arrow", toolbar.arrow_btn}, {"number", toolbar.number_btn},
+        {"watermark", toolbar.watermark_btn}, {"arrow", toolbar.arrow_btn}, {"line", toolbar.line_btn}, {"number", toolbar.number_btn},
         {"rect", toolbar.rect_btn}, {"ellipse", toolbar.ellipse_btn}, {"text", toolbar.text_btn},
         {"eraser", toolbar.eraser_btn}, {"undo", toolbar.undo_btn}, {"redo", toolbar.redo_btn},
         {"cancel", toolbar.cancel_btn}, {"pin", toolbar.pin_btn}, {"confirm", toolbar.confirm_btn}, {"more", toolbar.more_btn}};
@@ -412,7 +412,7 @@ private slots:
     // The pin toolbar keeps its former row; the tools added since wait in "...".
     void thePinToolbarKeepsItsRowAndFoldsTheNewTools() {
         PinToolbar toolbar(nullptr, config_);
-        QCOMPARE(toolbar_row(toolbar), QStringList({"save", "copy", "pen", "highlighter", "mosaic", "arrow", "number", "rect",
+        QCOMPARE(toolbar_row(toolbar), QStringList({"save", "copy", "pen", "highlighter", "mosaic", "arrow", "line", "number", "rect",
                                                     "ellipse", "text", "eraser", "undo", "redo", "more"}));
         toolbar.show();
         toolbar.more_btn->click();

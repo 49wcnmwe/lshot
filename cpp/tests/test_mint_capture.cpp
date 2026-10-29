@@ -14,6 +14,9 @@
 #include "canvas/undo.h"
 #include "core/save.h"
 #include "ui/shape_settings_panel.h"
+#include "ui/toolbar_layout.h"
+#include "settings/tool_settings.h"
+#include <QSettings>
 #include "ui/selection_info/rounded_corners.h"
 #include <QApplication>
 #include <QDoubleSpinBox>
@@ -27,6 +30,26 @@ using namespace jietuba;
 class MintCaptureTest : public QObject {
     Q_OBJECT
 private slots:
+    void custom_defaults_and_visible_tools() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QSettings storage(dir.filePath("defaults.ini"),QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        QCOMPARE(config.get_hotkey(),QString("ctrl+shift+a"));
+        QCOMPARE(config.get_screenshot_format(),QString("JPG"));
+        QVERIFY(!config.get_screenshot_save_enabled());
+        QCOMPARE(config.get_stroke_width("rect"),3.);
+        QCOMPARE(toolbar_layout::default_order(),QStringList({"long_screenshot","save","screenshot_translate","text_recognize","scan_code","gif",
+            "text","mosaic","rect","ellipse","line","arrow","watermark","pen","highlighter","spotlight","number","eraser","undo","redo","cancel","pin","confirm"}));
+        QCOMPARE(toolbar_layout::SCREENSHOT.default_more,QSet<QString>({"screenshot_translate","text_recognize","scan_code","gif","pen","highlighter","spotlight","number","eraser","pin"}));
+        QStringList visible;
+        for (const auto &value : toolbar_layout::default_layout()) {
+            const auto entry=value.toArray();
+            if (entry[1].toString()=="show") visible.append(entry[0].toString());
+        }
+        QCOMPARE(visible,QStringList({"long_screenshot","save","text","mosaic","rect","ellipse","line","arrow","watermark","undo","redo","cancel","confirm"}));
+        QVERIFY(toolbar_layout::PIN.order.contains("line"));
+    }
     void locked_geometry() {
         for (double ratio : {4. / 3., 2., .25}) {
             for (Qt::Edges edges : {Qt::Edges(Qt::TopEdge | Qt::LeftEdge), Qt::Edges(Qt::BottomEdge | Qt::RightEdge), Qt::Edges(Qt::TopEdge), Qt::Edges(Qt::LeftEdge)}) {

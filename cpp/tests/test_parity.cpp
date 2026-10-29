@@ -23,6 +23,39 @@
 
 using namespace jietuba;
 namespace {
+// Keep the frozen Python layout oracle exercising its original profiles. LShot's
+// current defaults and visible tools are asserted separately in test_mint_capture.
+toolbar_layout::LayoutProfile legacy_profile(const QJsonArray &rows, QSet<QString> locked) {
+    toolbar_layout::LayoutProfile profile;
+    profile.locked = locked;
+    for (const auto &value : rows.first().toObject()["expected"].toArray()) {
+        const auto entry = value.toArray();
+        profile.order.append(entry[0].toString());
+        if (entry[1].toString() == toolbar_layout::MORE) profile.default_more.insert(entry[0].toString());
+    }
+    return profile;
+}
+void apply_lshot_default_expectations(QJsonObject &fixtures) {
+    const QJsonObject customized{{"hotkey","ctrl+shift+a"},{"screenshot_format","JPG"},
+        {"screenshot_save_enabled",false},{"ui_theme_mode","light"},{"theme_color","#287852"}};
+    auto reads = fixtures["app_reads"].toObject();
+    auto accessors = fixtures["accessor_reads"].toObject();
+    for (auto it=customized.begin();it!=customized.end();++it) {
+        reads[it.key()] = it.value();
+        if (accessors.contains("get_"+it.key())) accessors["get_"+it.key()] = it.value();
+    }
+    fixtures["app_reads"] = reads; fixtures["accessor_reads"] = accessors;
+    auto coercion = fixtures["tool_coercion"].toArray();
+    for (int i=0;i<coercion.size();++i) {
+        auto row=coercion[i].toObject();
+        if (row["tool"]!="pen") continue;
+        const auto raw=row["raw"];
+        if (row["key"]=="stroke_width" && ((raw.isArray() && raw.toArray().isEmpty()) || raw=="bad")) row["expected"]=3;
+        if (row["key"]=="color" && raw.isArray() && raw.toArray().isEmpty()) row["expected"]="#347B59";
+        coercion[i]=row;
+    }
+    fixtures["tool_coercion"]=coercion;
+}
 QJsonArray rect(const QRectF &r) { return {r.x(), r.y(), r.width(), r.height()}; }
 QRectF rectangle(const QJsonValue &v) {
     const auto a = v.toArray();
@@ -38,6 +71,13 @@ private slots:
         QVERIFY(file.open(QIODevice::ReadOnly));
         fixtures_ = QJsonDocument::fromJson(file.readAll()).object();
         QVERIFY(!fixtures_.isEmpty());
+        for (const char *key : {"layout","pin_layout"}) {
+            const auto rows=fixtures_[key].toArray();
+            QVERIFY(!rows.isEmpty());
+            QCOMPARE(rows.first().toObject()["input_json"].toString(),QString("null"));
+            QVERIFY(!rows.first().toObject()["expected"].toArray().isEmpty());
+        }
+        apply_lshot_default_expectations(fixtures_);
     }
     void selectionStateAndSignalTrace() {
         for (const auto &sequence : fixtures_["selection"].toArray()) {
@@ -93,15 +133,17 @@ private slots:
         reset_last_region_for_test();
     }
     void toolbarNormalization() {
+        const auto profile = legacy_profile(fixtures_["layout"].toArray(), {"confirm"});
         for (const auto &v : fixtures_["layout"].toArray()) {
             const auto row = v.toObject();
-            QCOMPARE(toolbar_layout::normalize_layout_json(row["input_json"].toString().toUtf8()), row["expected"].toArray());
+            QCOMPARE(toolbar_layout::normalize_layout_json(row["input_json"].toString().toUtf8(),profile), row["expected"].toArray());
         }
     }
     void pinToolbarNormalization() {
+        const auto profile = legacy_profile(fixtures_["pin_layout"].toArray(), {});
         for (const auto &v : fixtures_["pin_layout"].toArray()) {
             const auto row = v.toObject();
-            QCOMPARE(toolbar_layout::normalize_layout_json(row["input_json"].toString().toUtf8(), toolbar_layout::PIN), row["expected"].toArray());
+            QCOMPARE(toolbar_layout::normalize_layout_json(row["input_json"].toString().toUtf8(),profile), row["expected"].toArray());
         }
     }
     void scaleRoundingAndDpi() {
@@ -174,7 +216,7 @@ private slots:
         model.set_setting("missing", "stroke_width", 1);
         QCOMPARE(spy.count(), 1);
         model.reset_tool("pen");
-        QCOMPARE(model.get_stroke_width("pen"), 12.0);
+        QCOMPARE(model.get_stroke_width("pen"), 3.0);
         QCOMPARE(spy.count(), 2);
         model.set_app_setting("pin_auto_toolbar", false);
         QVERIFY(qs.contains("pin/auto_toolbar"));
@@ -401,7 +443,7 @@ private slots:
         QStringList order;
         connect(&config, &ToolSettingsManager::settings_changed, this, [&](const QString &tool, const QVariantMap &) { order.append(tool); });
         config.reset_all();
-        QCOMPARE(order, QStringList({"pen", "highlighter", "mosaic", "spotlight", "watermark", "rect", "ellipse", "arrow", "text", "number", "eraser"}));
+        QCOMPARE(order, QStringList({"pen", "highlighter", "mosaic", "spotlight", "watermark", "rect", "ellipse", "arrow", "text", "number", "eraser", "line"}));
     }
 };
 QTEST_MAIN(ParityTests)
