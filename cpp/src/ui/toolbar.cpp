@@ -481,6 +481,7 @@ QWidget *Toolbar::ensure_panel_for_tool(const QString &tool_id) {
         make_floating(text_panel);
         connect(text_panel, &TextSettingsPanel::font_changed, this, &Toolbar::on_text_font_changed);
         connect(text_panel, &TextSettingsPanel::color_changed, this, &Toolbar::on_text_color_changed);
+        connect(text_panel, &TextSettingsPanel::opacity_changed, this, &Toolbar::opacity_changed);
         connect(text_panel, &TextSettingsPanel::background_changed, this, &Toolbar::on_text_background_changed);
         connect(text_panel, &TextSettingsPanel::outline_changed, this, &Toolbar::on_text_outline_changed);
         connect(text_panel, &TextSettingsPanel::shadow_changed, this, &Toolbar::on_text_shadow_changed);
@@ -796,6 +797,7 @@ void Toolbar::set_stroke_width(int width) {
 }
 
 void Toolbar::set_opacity(int opacity_255) {
+    if (text_panel) text_panel->set_opacity(opacity_255);
     if (paint_panel) paint_panel->set_opacity(opacity_255);
     if (shape_panel) shape_panel->set_opacity(opacity_255);
     if (arrow_panel) arrow_panel->set_opacity(opacity_255);

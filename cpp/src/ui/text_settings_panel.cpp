@@ -11,6 +11,8 @@
 #include <QStyleOptionGraphicsItem>
 #include <QStyleOptionSlider>
 #include <QTextDocument>
+#include <QSignalBlocker>
+#include <algorithm>
 
 namespace jietuba {
 namespace {
@@ -157,6 +159,7 @@ void TextSettingsPanel::apply_scale() {
     layout()->setSpacing(scaled(BASE_SPACING));
     font_combo->view()->setMinimumWidth(scaled(BASE_FONT_VIEW_WIDTH));
     size_spin->setFixedWidth(scaled(BASE_SIZE_SPIN_WIDTH));
+    opacity_spin->setFixedWidth(scaled(80));
     const int btn_sz = scaled(BASE_BTN);
     for (const auto &[button, decoration] : font_style_buttons_) {
         button->setFixedSize(btn_sz, btn_sz);
@@ -224,6 +227,13 @@ void TextSettingsPanel::init_ui() {
     size_spin = new StepperWidget(16, 8, 144);
     size_spin->setToolTip(tr_text("Font Size"));
     layout->addWidget(size_spin);
+    opacity_spin = new StepperWidget(100, 0, 100, "%", nullptr, "opacity");
+    opacity_spin->setObjectName("text_opacity");
+    opacity_spin->setToolTip(QString::fromUtf8("文字透明度"));
+    layout->addWidget(opacity_spin);
+    connect(opacity_spin, &StepperWidget::valueChanged, this, [this](int value) {
+        emit opacity_changed(qRound(value * 255. / 100.));
+    });
     // Weight, italic and underline come from CSS, independent of font variants.
     bold_btn = new QPushButton("B");
     bold_btn->setCheckable(true);
@@ -260,7 +270,14 @@ void TextSettingsPanel::init_ui() {
     layout->addWidget(color_row_);
     layout->addStretch();
     init_effect_popups();
+    font_combo->hide();
+    for (auto *button : {bold_btn,italic_btn,underline_btn,background_btn,outline_btn,shadow_btn}) button->hide();
     apply_scale();
+}
+
+void TextSettingsPanel::set_opacity(int opacity) {
+    const QSignalBlocker block(opacity_spin);
+    opacity_spin->setValue(qRound(std::clamp(opacity,0,255) * 100. / 255.));
 }
 
 void TextSettingsPanel::init_effect_popups() {
@@ -545,6 +562,7 @@ void TextSettingsPanel::set_state_from_item(QGraphicsTextItem *item) {
     if (!item) return;
     // Blocked so the updates do not loop back.
     blockSignals(true);
+    set_opacity(qRound(item->opacity() * 255));
     const auto font = item->font();
     font_combo->setCurrentText(font.family());
     int point_size = font.pointSize();
@@ -593,6 +611,7 @@ void TextSettingsPanel::load_from_config() {
     auto *manager = get_tool_settings_manager();
     auto *text_settings = manager->get_tool_settings("text");
     if (!text_settings) return;
+    set_opacity(qRound(text_settings->get("opacity",1.).toDouble() * 255));
     QFont font(normalize_text_font_family(text_settings->get("font_family", "").toString()));
     font.setPointSize(text_settings->get("font_size", 16).toInt());
     font.setBold(text_settings->get("font_bold", false).toBool());

@@ -9,6 +9,8 @@ inline bool valid_aspect(double ratio) { return std::isfinite(ratio) && ratio > 
 
 // Keeps the opposite corner fixed, or the centre on the secondary axis for edge drags.
 inline QRectF constrain_aspect(QRectF rect, double ratio, Qt::Edges moving, const QRectF &base = {}, const QSizeF &minimum = QSizeF(.01, .01)) {
+    const double x_sign = rect.width() < 0 ? -1 : 1;
+    const double y_sign = rect.height() < 0 ? -1 : 1;
     rect = rect.normalized();
     if (!valid_aspect(ratio)) return rect;
     const bool horizontal = moving.testFlag(Qt::LeftEdge) || moving.testFlag(Qt::RightEdge);
@@ -20,9 +22,10 @@ inline QRectF constrain_aspect(QRectF rect, double ratio, Qt::Edges moving, cons
     const double height = width / ratio;
     if (horizontal && vertical) {
         const auto anchor = base.isValid() ? base : rect;
-        const double x = moving.testFlag(Qt::LeftEdge) ? anchor.right() - width : anchor.left();
-        const double y = moving.testFlag(Qt::TopEdge) ? anchor.bottom() - height : anchor.top();
-        return QRectF(x, y, width, height);
+        const QPointF fixed(moving.testFlag(Qt::LeftEdge) ? anchor.right() : anchor.left(),
+                            moving.testFlag(Qt::TopEdge) ? anchor.bottom() : anchor.top());
+        return QRectF(fixed, fixed + QPointF((moving.testFlag(Qt::LeftEdge) ? -x_sign : x_sign) * width,
+                                            (moving.testFlag(Qt::TopEdge) ? -y_sign : y_sign) * height)).normalized();
     }
     if (horizontal) {
         if (moving.testFlag(Qt::LeftEdge)) rect.setLeft(rect.right() - width);

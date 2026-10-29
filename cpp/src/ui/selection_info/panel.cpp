@@ -12,8 +12,8 @@
 namespace jietuba {
 namespace {
 QString panel_tr(const char *text) { return i18n_tr(text, "SelectionInfoPanel"); }
-const QColor BG(30, 30, 30, 210);
-const QColor BORDER_COLOR(255, 255, 255, 140);
+const QColor BG(245, 251, 247, 225);
+const QColor BORDER_COLOR(125, 161, 139, 120);
 }
 
 InfoPanelView InfoPanelView::of(QGraphicsView *view) {
@@ -60,8 +60,8 @@ void SelectionInfoPanel::init_ui() {
     auto *colon = new QLabel(":", this);
     row_layout_->addWidget(ratio_width); row_layout_->addWidget(colon); row_layout_->addWidget(ratio_height);
     const auto apply_ratio = [this] { emit ratio_requested(ratio_width->value(), ratio_height->value()); };
-    connect(ratio_width, &QDoubleSpinBox::editingFinished, this, apply_ratio);
-    connect(ratio_height, &QDoubleSpinBox::editingFinished, this, apply_ratio);
+    connect(ratio_width, &QDoubleSpinBox::valueChanged, this, [apply_ratio](double) { apply_ratio(); });
+    connect(ratio_height, &QDoubleSpinBox::valueChanged, this, [apply_ratio](double) { apply_ratio(); });
     // Refresh background, rightmost.
     btn_refresh = make_btn(QString::fromUtf8("刷新背景.svg"), false, "Refresh Background");
     connect(btn_refresh, &QPushButton::pressed, this, &SelectionInfoPanel::refresh_pressed);
@@ -91,7 +91,7 @@ void SelectionInfoPanel::apply_scale() {
     setFixedHeight(scaled(BASE_HEIGHT));
     row_layout_->setContentsMargins(scaled(10), 0, scaled(5), 0);
     row_layout_->setSpacing(scaled(7));
-    set_own_style(info_label_, QString("color: #D0D0D0; font-size: %1px; background: transparent;").arg(scaled(BASE_FONT)));
+    set_own_style(info_label_, QString("color: #294638; font-size: %1px; background: transparent;").arg(scaled(BASE_FONT)));
     const int btn_sz = scaled(BASE_BTN);
     const int icon_sz = scaled(BASE_ICON);
     const int radius = scaled(4);
@@ -102,8 +102,8 @@ void SelectionInfoPanel::apply_scale() {
         button->setStyleSheet(QString(R"(
                 QPushButton { background: transparent; border: none;
                                border-radius: %1px; padding: %2px; }
-                QPushButton:hover { background: rgba(255,255,255,40); }
-                QPushButton:checked { background: rgba(64,224,208,80); }
+                QPushButton:hover { background: rgba(40,120,82,20); }
+                QPushButton:checked { background: rgba(40,120,82,45); }
             )").arg(radius).arg(padding));
     }
     sep_->setFixedSize(1, scaled(BASE_SEP_HEIGHT));

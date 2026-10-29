@@ -46,7 +46,7 @@ void ShapeSettingsPanel::init_ui() {
     connect(corner_spin, &QDoubleSpinBox::valueChanged, this, &ShapeSettingsPanel::corner_radius_changed);
     const auto emit_ratio = [this] { emit aspect_ratio_changed(ratio_lock->isChecked() ? ratio_width_spin->value()/ratio_height_spin->value() : 0.); };
     connect(ratio_lock, &QCheckBox::toggled, this, [emit_ratio](bool) { emit_ratio(); });
-    for (auto *spin : {ratio_width_spin, ratio_height_spin}) connect(spin, &QDoubleSpinBox::editingFinished, this, [this, emit_ratio] {
+    for (auto *spin : {ratio_width_spin, ratio_height_spin}) connect(spin, &QDoubleSpinBox::valueChanged, this, [this, emit_ratio](double) {
         const QSignalBlocker block(ratio_lock); ratio_lock->setChecked(true); emit_ratio();
     });
     layout->addStretch();

@@ -36,6 +36,7 @@ private slots:
         const QRectF base(20,30,160,80);
         const auto grown = constrain_aspect(QRectF(20,30,160,150),2,Qt::BottomEdge|Qt::RightEdge,base);
         QCOMPARE(grown, QRectF(20,30,300,150));
+        QCOMPARE(constrain_aspect(QRectF(20,30,-40,-20),2,Qt::BottomEdge|Qt::RightEdge,base),QRectF(-20,10,40,20));
         SelectionModel model;
         SelectionItem selection(&model);
         LockRatioLogic lock(&selection);
@@ -96,6 +97,9 @@ private slots:
         radius->setValue(9);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(changed.front().front().toDouble(), 9.);
+        QSignalSpy ratio_changed(&panel,&ShapeSettingsPanel::aspect_ratio_changed);
+        QMetaObject::invokeMethod(width,"editingFinished",Qt::DirectConnection);
+        QCOMPARE(ratio_changed.count(),0);
         panel.set_tool("ellipse");
         QVERIFY(radius->parentWidget()->isHidden());
     }
