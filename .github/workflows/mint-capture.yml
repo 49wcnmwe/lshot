@@ -1,14 +1,12 @@
 name: LShot Windows build
 on:
   workflow_dispatch:
-  push:
-    branches: [feature/mint-capture]
   pull_request:
     branches: [master2]
 permissions:
   contents: read
 concurrency:
-  group: lshot-${{ github.ref }}
+  group: lshot-capture-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
@@ -37,7 +35,7 @@ jobs:
         with:
           workspaces: cpp/native -> ../build/msvc/native
       - name: Build application and tests
-        run: .\scripts\build.ps1 -Configuration Release -SkipTests -NoUpdates
+        run: .\scripts\build.ps1 -Configuration Release -SkipTests -NoUpdates -Targets jietuba_cpp,jietuba_mint_tests,jietuba_canvas_items_tests,jietuba_ui_widgets_tests,jietuba_screenshot_window_tests,jietuba_save_image_dialog_tests
       - name: Test capture changes
         run: |
           ctest --test-dir build/msvc -C Release --output-on-failure -R 'mint_capture|canvas_items|ui_widgets|screenshot_window|save_image_dialog' -E '_desktop$|_windows_parity$'

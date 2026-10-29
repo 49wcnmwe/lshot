@@ -259,7 +259,7 @@ void TextSettingsPanel::init_ui() {
         layout->addWidget(button);
     }
     layout->addWidget(make_separator());
-    color_btn = new ColorPickerButton(current_color, true, 28, true, true);
+    color_btn = new ColorPickerButton(current_color, false, 28, true, true);
     color_btn->setToolTip(tr_text("Custom Color"));
     color_row_ = new ColorRow(color_btn, PRESET_COLORS, [this](const QString &hex) {
         const QColor color(hex);

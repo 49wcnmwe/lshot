@@ -2,6 +2,7 @@ param(
     [string]$QtRoot = '',
     [ValidateSet('Release', 'Debug')][string]$Configuration = 'Release',
     [switch]$SkipTests,
+    [string[]]$Targets = @(),
     # Single-file lite build against the SDK from build_static_qt.ps1: no PP-OCR, no tests
     # (the same sources are tested by the normal build), deployed to dist\<Configuration>-static.
     [switch]$Static,
@@ -92,7 +93,9 @@ if ((Test-Path -LiteralPath $cache) -and -not (Select-String -LiteralPath $cache
 }
 & $cmake -S $projectRoot -B $buildDir -G $generator -A $(if ($Arch -eq 'arm64') { 'ARM64' } else { 'x64' }) "-DCMAKE_GENERATOR_INSTANCE=$vsRoot" "-DCMAKE_PREFIX_PATH=$QtRoot" @configureArgs
 if ($LASTEXITCODE -ne 0) { throw 'CMake configuration failed.' }
-& $cmake --build $buildDir --config $Configuration --parallel
+$buildArgs = @('--build', $buildDir, '--config', $Configuration, '--parallel')
+if ($Targets.Count) { $buildArgs += @('--target') + $Targets }
+& $cmake @buildArgs
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 if (-not $SkipTests -and -not $Static) {
     & $ctest --test-dir $buildDir -C $Configuration --output-on-failure

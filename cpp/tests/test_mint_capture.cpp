@@ -5,7 +5,10 @@
 #include "canvas/items/stroke_item.h"
 #include "canvas/scene.h"
 #include "canvas/selection_model.h"
+#include "canvas/view.h"
+#include "canvas/smart_edit_controller.h"
 #include "tools/line.h"
+#include "tools/text.h"
 #include "ui/selection_info/lock_ratio.h"
 #include "canvas/handle_editor.h"
 #include "canvas/undo.h"
@@ -68,6 +71,13 @@ private slots:
         EllipseItem dot(QRectF(0,0,50,50),QPen(Qt::green,3));
         dot.filled_dot = true;
         QVERIFY(dot.shape().contains(QPointF(25,25)));
+        ctx.opacity = .5;
+        TextTool text;
+        QVERIFY(text.on_press(QPointF(40,40),Qt::LeftButton,ctx));
+        auto *text_item = dynamic_cast<TextItem *>(scene.focusItem());
+        if (!text_item) for (auto *item : scene.items()) if (auto *candidate = dynamic_cast<TextItem *>(item)) text_item = candidate;
+        QVERIFY(text_item);
+        QCOMPARE(text_item->opacity(),.5);
     }
     void curved_dashes_follow_shaft() {
         for (bool double_bend : {false,true}) {
@@ -137,6 +147,28 @@ private slots:
         editor.start_drag(handle, handle.position);
         editor.drag_to(handle.position + QPointF(50, 70));
         QVERIFY(std::abs(item.rect().width() / item.rect().height() - 2.) < .0001);
+    }
+    void numeric_rectangle_edits_are_undoable() {
+        CanvasScene scene(QImage(),QRectF(0,0,400,300));
+        CanvasView view(&scene);
+        scene.activate_tool("rect");
+        auto *item = new RectItem(QRectF(20,30,160,80),QPen(Qt::green,3));
+        scene.addItem(item);
+        view.smart_edit_controller->select_item(item);
+        view.apply_rectangle_parameters(25.5,std::nullopt);
+        QCOMPARE(item->get_corner_radius(),25.5);
+        view.apply_rectangle_parameters(std::nullopt,4./3.);
+        QCOMPARE(item->rect().size(),QSizeF(160,120));
+        QCOMPARE(item->aspect_ratio,4./3.);
+        scene.undo_stack->undo();
+        QCOMPARE(item->rect().size(),QSizeF(160,80));
+        QCOMPARE(item->aspect_ratio,0.);
+        scene.undo_stack->undo();
+        QCOMPARE(item->get_corner_radius(),0.);
+        scene.undo_stack->redo();
+        QCOMPARE(item->get_corner_radius(),25.5);
+        scene.undo_stack->redo();
+        QCOMPARE(item->aspect_ratio,4./3.);
     }
 };
 QTEST_MAIN(MintCaptureTest)
