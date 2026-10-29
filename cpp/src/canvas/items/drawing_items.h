@@ -62,6 +62,7 @@ public:
     static constexpr qreal CLICK_MARGIN = 4;
     RectItem(const QRectF &, const QPen &, qreal corner_radius = 0);
     bool is_highlighter = false, is_highlighter_rect = false;
+    qreal aspect_ratio = 0;
     void setPen(const QPen &);
     void setRect(const QRectF &);
     qreal get_corner_radius() const { return corner_radius_; }
@@ -80,6 +81,7 @@ class EllipseItem : public QGraphicsEllipseItem, public DrawingItemMixin {
 public:
     static constexpr qreal CLICK_MARGIN = 4;
     EllipseItem(const QRectF &, const QPen &);
+    bool filled_dot = false;
     void setPen(const QPen &);
     void setRect(const QRectF &);
     QPainterPath shape() const override;

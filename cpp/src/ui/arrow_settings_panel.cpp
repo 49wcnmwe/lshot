@@ -113,8 +113,15 @@ void ArrowSettingsPanel::apply_scale() {
     update();
 }
 
+void ArrowSettingsPanel::set_line_style(const QString &style) {
+    const bool blocked = line_style_combo->blockSignals(true);
+    line_style_combo->setCurrentIndex(style=="dashed"?1:0); line_style_combo->blockSignals(blocked);
+}
 void ArrowSettingsPanel::init_ui() {
     auto *layout = new QHBoxLayout(this);
+    line_style_combo = new PillComboBox(this); line_style_combo->setObjectName("arrow_line_style");
+    line_style_combo->addItem(QString::fromUtf8("实线"),"solid"); line_style_combo->addItem(QString::fromUtf8("虚线"),"dashed");
+    line_style_combo->setToolTip(QString::fromUtf8("箭头线段效果")); layout->addWidget(line_style_combo);
     arrow_style_combo = new PillComboBox;
     for (const auto &style : ArrowItem::STYLES) {
         arrow_style_combo->addItem(arrow_style_icon(style), "", style);
@@ -142,6 +149,7 @@ void ArrowSettingsPanel::init_ui() {
 }
 
 void ArrowSettingsPanel::connect_signals() {
+    connect(line_style_combo, &QComboBox::currentIndexChanged, this, [this](int) {emit line_style_changed(line_style_combo->currentData().toString());});
     connect(arrow_style_combo, &QComboBox::currentIndexChanged, this, [this](int) {
         auto style = arrow_style_combo->currentData().toString();
         if (style.isEmpty()) style = arrow_style_combo->currentText();

@@ -69,6 +69,7 @@ ItemType SmartEditController::get_item_type(QGraphicsItem *item) const {
 }
 
 std::optional<QString> SmartEditController::get_item_tool_id(QGraphicsItem *item) const {
+    if (item && item->data(Qt::UserRole+351).toString()=="line") return QString("line");
     if (auto *stroke = dynamic_cast<StrokeItem *>(item)) return stroke->is_highlighter ? QString("highlighter") : QString("pen");
     if (dynamic_cast<SpotlightItem *>(item)) return QString("spotlight");
     if (auto *rect = dynamic_cast<RectItem *>(item)) return rect->is_highlighter_rect ? QString("highlighter") : QString("rect");

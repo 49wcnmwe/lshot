@@ -91,6 +91,7 @@ public:
     void apply_size_change_to_selection(double scale);
     void apply_opacity_change_to_selection(double opacity);
     void apply_line_style_change_to_selection(const QString &style);
+    void apply_rectangle_parameters(std::optional<double> radius, std::optional<double> ratio);
     void update_magnifier_overlay(const QPointF &scene_pos);
     void clear_magnifier_overlay();
     void apply_tool_cursor();

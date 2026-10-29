@@ -1,4 +1,5 @@
 #include "canvas/handle_editor.h"
+#include "core/aspect_geometry.h"
 #include "canvas/items/arrow_item.h"
 #include "canvas/items/mosaic_item.h"
 #include "canvas/items/stroke_item.h"
@@ -429,7 +430,18 @@ void LayerEditor::apply_handle_drag(QGraphicsItem *layer, const EditHandle &hand
         const QPointF delta_local(p1.x() - p0.x(), p1.y() - p0.y());
         QRectF new_rect(*base_local_rect_);
         apply_rect_delta(new_rect, handle.handle_type, delta_local);
-        set_local_rect(layer, new_rect.normalized());
+
+        double ratio = 0;
+        if (auto *item = dynamic_cast<RectItem *>(layer)) ratio = item->aspect_ratio;
+        if (auto *dot = dynamic_cast<EllipseItem *>(layer); dot && dot->filled_dot) ratio = 1;
+        if (!valid_aspect(ratio) && keep_ratio && base_local_rect_->height() > 0) ratio = base_local_rect_->width() / base_local_rect_->height();
+        Qt::Edges edges;
+        const auto type = handle.handle_type;
+        if (type == HandleType::CORNER_TL || type == HandleType::CORNER_BL || type == HandleType::EDGE_L) edges |= Qt::LeftEdge;
+        if (type == HandleType::CORNER_TR || type == HandleType::CORNER_BR || type == HandleType::EDGE_R) edges |= Qt::RightEdge;
+        if (type == HandleType::CORNER_TL || type == HandleType::CORNER_TR || type == HandleType::EDGE_T) edges |= Qt::TopEdge;
+        if (type == HandleType::CORNER_BL || type == HandleType::CORNER_BR || type == HandleType::EDGE_B) edges |= Qt::BottomEdge;
+        set_local_rect(layer, constrain_aspect(new_rect, ratio, edges));
     }
 }
 
@@ -710,6 +722,7 @@ std::optional<QVariantMap> LayerEditor::copy_layer_state(QGraphicsItem *layer) c
         state["end"] = arrow->end_pos;
         state["control"] = arrow->control_pos();
         state["control_modified"] = arrow->_control_modified;
+        state["arrow_line_style"] = arrow->line_style;
         QVariantList bends;
         if (arrow->_bend_points)
             for (const auto &point : *arrow->_bend_points) bends << point;
@@ -717,7 +730,7 @@ std::optional<QVariantMap> LayerEditor::copy_layer_state(QGraphicsItem *layer) c
     } else {
         state["control"] = QVariant();
     }
-    if (auto *rect_item = corner_radius_item(layer)) state["corner_radius"] = rect_item->get_corner_radius();
+    if (auto *rect_item = corner_radius_item(layer)) { state["corner_radius"] = rect_item->get_corner_radius(); state["aspect_ratio"] = rect_item->aspect_ratio; }
     if (auto *number = dynamic_cast<NumberItem *>(layer)) state["number"] = std::max(1, number->number);
     return state;
 }

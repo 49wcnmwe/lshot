@@ -9,12 +9,13 @@
 #include "settings/tool_settings.h"
 #include "ui/mask_overlay.h"
 #include <QEvent>
+#include <QSignalBlocker>
 #include <QPainter>
 #include <QPainterPath>
 
 namespace jietuba {
 namespace {
-const QColor POPUP_BG(30, 30, 30, 220);
+const QColor POPUP_BG(245, 251, 247, 230);
 }
 
 RoundedSliderPopup::RoundedSliderPopup(QWidget *parent) : QWidget(parent) {
@@ -38,13 +39,15 @@ void RoundedSliderPopup::init_ui() {
     slider_->setValue(16);
     slider_->setFocusPolicy(Qt::NoFocus);
     row_layout_->addWidget(slider_);
-    label_ = new QLabel("16");
+    label_ = new QSpinBox(this);
+    label_->setObjectName("screenshot_corner_radius"); label_->setRange(0,100); label_->setValue(16); label_->setSuffix(" px"); label_->setKeyboardTracking(false);
     label_->setAlignment(Qt::AlignCenter);
     row_layout_->addWidget(label_);
     connect(slider_, &QSlider::valueChanged, this, [this](int value) {
-        label_->setText(QString::number(value));
+        const QSignalBlocker block(label_); label_->setValue(value);
         emit radius_changed(value);
     });
+    connect(label_, &QSpinBox::valueChanged, slider_, &QSlider::setValue);
     apply_scale();
 }
 
@@ -56,7 +59,7 @@ void RoundedSliderPopup::apply_scale() {
     const auto thx = get_theme().theme_color_hex();
     slider_->setStyleSheet(QString(R"(
             QSlider::groove:horizontal {
-                height: %1px; background: #555; border-radius: %2px;
+                height: %1px; background: #D3E2D8; border-radius: %2px;
             }
             QSlider::handle:horizontal {
                 width: %3px; height: %3px; margin: %4px 0;
@@ -66,15 +69,15 @@ void RoundedSliderPopup::apply_scale() {
                 background: %5; border-radius: %2px;
             }
         )").arg(scaled(4)).arg(scaled(2)).arg(scaled(12)).arg(-scaled(4)).arg(thx).arg(scaled(6)));
-    label_->setFixedWidth(scaled(BASE_LABEL_WIDTH));
-    set_own_style(label_, QString("color: #D0D0D0; font-size: %1px; background: transparent;").arg(scaled(12)));
+    label_->setFixedWidth(scaled(75));
+    set_own_style(label_, QString("color: #294638; font-size: %1px; background: transparent;").arg(scaled(12)));
     update();
     if (isVisible() && anchor_) show_near(anchor_);
 }
 
 void RoundedSliderPopup::do_hide() {
     // Not while the pointer is still on the popup.
-    if (underMouse()) return;
+    if (underMouse() || (focusWidget() && isAncestorOf(focusWidget()))) return;
     hide();
 }
 

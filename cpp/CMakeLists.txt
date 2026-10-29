@@ -519,6 +519,10 @@ if(BUILD_TESTING)
     target_compile_definitions(jietuba_freehand_tests PRIVATE JIETUBA_FREEHAND_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/freehand.json")
     add_test(NAME python_freehand_parity COMMAND jietuba_freehand_tests -o ${JIETUBA_TEST_REPORTS}/python_freehand_parity.txt,txt)
     set_tests_properties(python_freehand_parity PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    qt_add_executable(jietuba_mint_tests tests/test_mint_capture.cpp)
+    target_link_libraries(jietuba_mint_tests PRIVATE jietuba_lib Qt6::Test)
+    add_test(NAME mint_capture COMMAND jietuba_mint_tests -o ${JIETUBA_TEST_REPORTS}/mint_capture.txt,txt)
+    set_tests_properties(mint_capture PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     # Settings and data are the user's real ones: every test executable starts in
     # the throwaway sandbox of tests/test_sandbox.cpp, however it is launched.
     add_library(jietuba_test_sandbox OBJECT tests/test_sandbox.cpp)

@@ -29,6 +29,7 @@ public:
     qreal base_width;
     QColor color;
     QString _arrow_style;
+    QString line_style = "solid";
     void setPath(const QPainterPath &);
     QRectF boundingRect() const override;
     QPainterPath shape() const override;

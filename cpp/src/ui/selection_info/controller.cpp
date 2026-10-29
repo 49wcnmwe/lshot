@@ -1,4 +1,7 @@
 #include "ui/selection_info/controller.h"
+#include "core/aspect_geometry.h"
+#include <QSignalBlocker>
+#include <QGraphicsScene>
 #include "canvas/selection_model.h"
 #include "capture/capture_service.h"
 #include "core/logger.h"
@@ -31,6 +34,22 @@ SelectionInfoController::SelectionInfoController(SelectionInfoPanel *panel, Sele
 SelectionInfoController::~SelectionInfoController() { cleanup(); }
 
 void SelectionInfoController::connect_signals() {
+    model_connections_.append(QObject::connect(panel, &SelectionInfoPanel::ratio_requested, panel, [this](double width, double height) {
+        if (model->rect().isEmpty() || !valid_aspect(width / height)) return;
+        auto rect = model->rect();
+        const double ratio = width / height;
+        double w = rect.width(), h = w / ratio;
+        if (const auto *scene = selection_item->scene()) {
+            const auto limit = scene->sceneRect();
+            const double factor = std::min({1., (limit.right() - rect.left()) / w, (limit.bottom() - rect.top()) / h});
+            w *= std::max(0., factor); h *= std::max(0., factor);
+        }
+        if (w < model->min_size.width() || h < model->min_size.height()) return;
+        rect.setSize(QSizeF(w, h));
+        { const QSignalBlocker block(panel->btn_lock); panel->btn_lock->setChecked(true); }
+        lock_ratio_->set_enabled(true, rect);
+        model->set_rect(rect);
+    }));
     model_connections_.append(QObject::connect(model, &SelectionModel::rectChanged, panel, [this](const QRectF &rect) { on_rect_changed(rect); }));
     model_connections_.append(QObject::connect(model, &SelectionModel::draggingChanged, panel, [this](bool dragging) { on_dragging_changed(dragging); }));
     model_connections_.append(QObject::connect(model, &SelectionModel::confirmed, panel, [this](const QRectF &rect) { on_confirmed(rect); }));

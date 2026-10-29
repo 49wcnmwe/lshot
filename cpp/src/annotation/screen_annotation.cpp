@@ -281,6 +281,12 @@ void ScreenAnnotation::connect_toolbar() {
     connect(tb, &Toolbar::line_style_changed, this, [this](const QString &style) {
         for_each_view([&style](AnnotationView *view) { view->apply_line_style_change_to_selection(style); });
     });
+    connect(tb, &Toolbar::rectangle_radius_changed, this, [this](double radius) {
+        for_each_view([radius](AnnotationView *view) { view->apply_rectangle_parameters(radius, std::nullopt); });
+    });
+    connect(tb, &Toolbar::rectangle_ratio_changed, this, [this](double ratio) {
+        for_each_view([ratio](AnnotationView *view) { view->apply_rectangle_parameters(std::nullopt, ratio); });
+    });
     connect(tb, &Toolbar::highlighter_mode_changed, this, [this](const QString &) {
         for_each_view([](AnnotationView *view) {
             if (view->cursor_manager) view->cursor_manager->set_tool_cursor("highlighter", true);

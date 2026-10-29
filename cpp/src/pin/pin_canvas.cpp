@@ -252,6 +252,12 @@ void PinCanvas::connect_toolbar(PinToolbar *toolbar, CanvasView *view) {
     connect(toolbar, &Toolbar::line_style_changed, this, [view](const QString &style) {
         if (view) view->apply_line_style_change_to_selection(style);
     });
+    connect(toolbar, &Toolbar::rectangle_radius_changed, this, [view](double radius) {
+        if (view) view->apply_rectangle_parameters(radius, std::nullopt);
+    });
+    connect(toolbar, &Toolbar::rectangle_ratio_changed, this, [view](double ratio) {
+        if (view) view->apply_rectangle_parameters(std::nullopt, ratio);
+    });
     // A highlighter mode switch refreshes the cursor at once.
     connect(toolbar, &Toolbar::highlighter_mode_changed, this, [view](const QString &) {
         if (view && view->cursor_manager) view->cursor_manager->set_tool_cursor("highlighter", true);

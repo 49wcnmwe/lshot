@@ -49,7 +49,7 @@ private:
     ThemeManager() = default;
     void load_from_settings();
     ToolSettingsManager *config_manager_ = nullptr;
-    QColor theme_color_ = QColor("#40E0D0");
+    QColor theme_color_ = QColor("#287852");
     QColor mask_color_ = QColor(0, 0, 0, 120);
     int selection_border_width_ = DEFAULT_BORDER_WIDTH;
     QString selection_handle_style_ = HANDLES_ALL;

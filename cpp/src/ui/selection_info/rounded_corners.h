@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QSlider>
+#include <QSpinBox>
 #include <QTimer>
 #include <QWidget>
 
@@ -21,7 +22,7 @@ class RoundedSliderPopup : public QWidget {
 public:
     static constexpr int BASE_RADIUS = 6;
     static constexpr int BASE_HEIGHT = 30;
-    static constexpr int BASE_WIDTH = 180;
+    static constexpr int BASE_WIDTH = 225;
     static constexpr int BASE_SLIDER_WIDTH = 110;
     static constexpr int BASE_LABEL_WIDTH = 30;
     explicit RoundedSliderPopup(QWidget *parent);
@@ -45,7 +46,7 @@ private:
     void do_hide();
     QHBoxLayout *row_layout_ = nullptr;
     QSlider *slider_ = nullptr;
-    QLabel *label_ = nullptr;
+    QSpinBox *label_ = nullptr;
     QTimer *hide_timer_ = nullptr;
     QPointer<QWidget> anchor_;
 };

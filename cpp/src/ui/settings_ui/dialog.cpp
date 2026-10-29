@@ -852,6 +852,7 @@ void SettingsDialog::save_changes(QSet<QString> changed) {
         config_manager->set_screenshot_save_original_enabled(checked_of(toggle));
     if (auto *toggle = attr_widget("clipboard_file_reference_toggle"); toggle && has("clipboard_file_reference_toggle"))
         config_manager->set_clipboard_file_reference_enabled(checked_of(toggle));
+    if (auto *text = attr<QLineEdit>("watermark_text_edit"); text && has("watermark_text_edit")) config_manager->set_screenshot_watermark_text(text->text());
     if (auto *toggle = attr_widget("watermark_auto_toggle"); toggle && has("watermark_auto_toggle")) config_manager->set_screenshot_watermark_auto(checked_of(toggle));
     if (auto *label = attr_widget("save_path_lbl"); label && has("save_path_lbl")) config_manager->set_screenshot_save_path(text_of(label));
     if (auto *combo = attr<QComboBox>("screenshot_format_combo"); combo && has("screenshot_format_combo")) config_manager->set_screenshot_format(combo->currentData().toString());
@@ -1142,7 +1143,7 @@ QVariantMap SettingsDialog::snapshot_settings() const {
     for (const auto &[key, control] : behavior_controls)
         if (control) snap[key] = behavior_value(control);
     // Text.
-    for (const auto &name : GLOBAL_HOTKEY_EDIT_ATTRS + QStringList{"save_path_lbl", "path_lbl"})
+    for (const auto &name : GLOBAL_HOTKEY_EDIT_ATTRS + QStringList{"save_path_lbl", "path_lbl", "watermark_text_edit"})
         if (auto *widget = attr_widget(name)) snap[name] = text_of(widget);
     // Translation credentials by declaration, so every provider's edits count as unsaved.
     if (provider_field_widgets)
@@ -1306,6 +1307,7 @@ void SettingsDialog::refresh_settings() {
     if (auto *toggle = attr_widget("screenshot_pin_save_toggle")) set_checked(toggle, config_manager->get_screenshot_pin_save_enabled());
     if (auto *toggle = attr_widget("screenshot_save_original_toggle")) set_checked(toggle, config_manager->get_screenshot_save_original_enabled());
     if (auto *toggle = attr_widget("clipboard_file_reference_toggle")) set_checked(toggle, config_manager->get_clipboard_file_reference_enabled());
+    if (auto *text = attr<QLineEdit>("watermark_text_edit")) text->setText(config_manager->get_screenshot_watermark_text());
     if (auto *toggle = attr_widget("watermark_auto_toggle")) set_checked(toggle, config_manager->get_screenshot_watermark_auto());
     if (auto *label = attr_widget("save_path_lbl")) set_text(label, config_manager->get_screenshot_save_path());
     if (auto *combo = attr<QComboBox>("screenshot_format_combo"))

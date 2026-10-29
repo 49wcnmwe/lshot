@@ -47,6 +47,21 @@ void SelectionInfoPanel::init_ui() {
     sep_ = new QLabel;
     set_own_style(sep_, "background: rgba(255,255,255,30);");
     row_layout_->addWidget(sep_);
+    // Explicit ratio inputs: editing either locks the requested ratio.
+    ratio_width = new QDoubleSpinBox(this); ratio_height = new QDoubleSpinBox(this);
+    ratio_width->setObjectName("capture_ratio_width"); ratio_height->setObjectName("capture_ratio_height");
+    for (auto *spin : {ratio_width, ratio_height}) {
+        spin->setRange(.01, 10000); spin->setDecimals(2); spin->setValue(1);
+        spin->setFixedWidth(scaled(65)); spin->setKeyboardTracking(false);
+        spin->setStyleSheet("QDoubleSpinBox { color:#263b34; background:#eff7f1; border:0; border-radius:4px; }");
+    }
+    ratio_width->setToolTip(QString::fromUtf8("截图比例：宽，修改后等比缩放"));
+    ratio_height->setToolTip(QString::fromUtf8("截图比例：高，修改后等比缩放"));
+    auto *colon = new QLabel(":", this);
+    row_layout_->addWidget(ratio_width); row_layout_->addWidget(colon); row_layout_->addWidget(ratio_height);
+    const auto apply_ratio = [this] { emit ratio_requested(ratio_width->value(), ratio_height->value()); };
+    connect(ratio_width, &QDoubleSpinBox::editingFinished, this, apply_ratio);
+    connect(ratio_height, &QDoubleSpinBox::editingFinished, this, apply_ratio);
     // Refresh background, rightmost.
     btn_refresh = make_btn(QString::fromUtf8("刷新背景.svg"), false, "Refresh Background");
     connect(btn_refresh, &QPushButton::pressed, this, &SelectionInfoPanel::refresh_pressed);
@@ -56,7 +71,7 @@ void SelectionInfoPanel::init_ui() {
     connect(btn_rounded, &QPushButton::toggled, this, &SelectionInfoPanel::rounded_toggled);
     connect(btn_lock, &QPushButton::toggled, this, &SelectionInfoPanel::lock_ratio_toggled);
     // Hidden until the selection is confirmed.
-    action_widgets_ = {btn_rounded, btn_lock, btn_border, sep_, btn_refresh};
+    action_widgets_ = {btn_rounded, btn_lock, btn_border, sep_, ratio_width, colon, ratio_height, btn_refresh};
     for (auto *widget : action_widgets_) widget->hide();
     apply_scale();
 }

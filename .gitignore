@@ -1,0 +1,7 @@
+cpp/.sdk/
+cpp/.tools/
+cpp/build/
+cpp/dist/
+rust_libs/target/
+cpp/native/target/
+__pycache__/

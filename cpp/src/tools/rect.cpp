@@ -1,4 +1,5 @@
 #include "tools/rect.h"
+#include "core/aspect_geometry.h"
 #include "canvas/items/drawing_items.h"
 #include "canvas/scene.h"
 #include "core/logger.h"
@@ -14,19 +15,21 @@ bool RectTool::on_press(const QPointF &pos, Qt::MouseButton button, ToolContext 
         auto *settings = ctx.settings_manager->get_tool_settings("rect");
         line_style = settings->get("line_style", "solid").toString();
         corner_radius = settings->get("corner_radius", 0).toDouble();
+        aspect_ratio = settings->get("aspect_ratio", 0.).toDouble();
     }
     // Round caps and joins keep dashes from looking like blocks.
     pen.setCapStyle(Qt::RoundCap);
     pen.setJoinStyle(Qt::RoundJoin);
     apply_line_style(pen, line_style);
     current_item = new RectItem(QRectF(pos, pos), pen, corner_radius);
+    current_item->aspect_ratio = aspect_ratio;
     ctx.scene->addItem(current_item);
     log_debug(T("开始绘制: {pos}", {{"pos", geometry_text(pos)}}), "RectTool");
     return true;
 }
 
 void RectTool::on_move(const QPointF &pos, ToolContext &) {
-    if (drawing && current_item) current_item->setRect(drag_rect(start_pos, pos, shift_held()));
+    if (drawing && current_item) current_item->setRect(valid_aspect(aspect_ratio) ? aspect_drag_rect(start_pos, pos, aspect_ratio) : drag_rect(start_pos, pos, shift_held()));
 }
 
 void RectTool::on_release(const QPointF &, ToolContext &ctx) {

@@ -28,6 +28,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QScreen>
+#include <QSignalBlocker>
 
 namespace jietuba {
 namespace {
@@ -74,7 +75,7 @@ QString button_qss() {
 }
 }
 
-const QStringList Toolbar::PANEL_TOOLS = {"pen", "highlighter", "rect", "ellipse", "arrow", "number", "text", "mosaic"};
+const QStringList Toolbar::PANEL_TOOLS = {"pen", "highlighter", "rect", "ellipse", "line", "arrow", "number", "text", "mosaic"};
 
 ToolbarDragHandle::ToolbarDragHandle(QWidget *parent) : QWidget(parent) { setCursor(Qt::SizeAllCursor); }
 
@@ -201,8 +202,9 @@ void Toolbar::init_ui() {
     watermark_btn = add_tool_button("watermark", QString::fromUtf8("svg/水印.svg"), "Watermark", tool);
     arrow_btn = add_tool_button("arrow", QString::fromUtf8("svg/箭头.svg"), "Draw arrow", tool);
     number_btn = add_tool_button("number", QString::fromUtf8("svg/序号.svg"), "Number (Shift+scroll to change number)", tool);
+    line_btn = add_tool_button("line", "svg/line.svg", "直线", tool);
     rect_btn = add_tool_button("rect", QString::fromUtf8("svg/方框.svg"), "Draw rectangle (hold Shift for square)", tool);
-    ellipse_btn = add_tool_button("ellipse", QString::fromUtf8("svg/圆框.svg"), "Draw ellipse (hold Shift for circle)", tool);
+    ellipse_btn = add_tool_button("ellipse", "svg/dot.svg", "实心点（等比圆形）", tool);
     text_btn = add_tool_button("text", QString::fromUtf8("svg/文字.svg"), "Add text", tool);
     eraser_btn = add_tool_button("eraser", QString::fromUtf8("svg/橡皮.svg"), "Eraser tool", tool);
 
@@ -210,7 +212,7 @@ void Toolbar::init_ui() {
     redo_btn = add_button("redo", QString::fromUtf8("svg/复原.svg"), "Redo", tool, [this] { emit redo_clicked(); });
     cancel_btn = add_button("cancel", QString::fromUtf8("svg/结束截图.svg"), "Cancel screenshot (ESC)", wide, [this] { emit cancel_clicked(); });
     pin_btn = add_button("pin", QString::fromUtf8("svg/钉图.svg"), "Pin image", wide, [this] { emit pin_clicked(); });
-    confirm_btn = add_button("confirm", QString::fromUtf8("svg/确定.svg"), "Confirm and save", wide, [this] { emit confirm_clicked(); });
+    confirm_btn = add_button("confirm", QString::fromUtf8("svg/确定.svg"), "确定并复制到剪贴板", wide, [this] { emit confirm_clicked(); });
 
     // "...": hover or click opens folded buttons; registered like a button, arranged last.
     more_btn = new ToolbarMoreHandle(this);
@@ -228,7 +230,7 @@ void Toolbar::init_ui() {
     tool_buttons = {
         {"pen", pen_btn}, {"highlighter", highlighter_btn}, {"mosaic", mosaic_btn}, {"spotlight", spotlight_btn},
         {"watermark", watermark_btn}, {"arrow", arrow_btn}, {"number", number_btn}, {"rect", rect_btn},
-        {"ellipse", ellipse_btn}, {"text", text_btn}, {"eraser", eraser_btn},
+        {"ellipse", ellipse_btn}, {"line", line_btn}, {"text", text_btn}, {"eraser", eraser_btn},
     };
     // Keep common panels ready: highlighter/pen, rectangle/ellipse and numbering.
     ensure_panel_for_tool("highlighter");
@@ -411,7 +413,7 @@ void Toolbar::open_layout_dialog() {
 QWidget *Toolbar::ensure_panel_for_tool(const QString &tool_id) {
     QString kind;
     if (tool_id == "pen" || tool_id == "highlighter" || tool_id == "spotlight") kind = "paint";
-    else if (tool_id == "rect" || tool_id == "ellipse") kind = "shape";
+    else if (tool_id == "rect" || tool_id == "ellipse" || tool_id == "line") kind = "shape";
     else if (tool_id == "watermark") return ensure_watermark_panel();
     else kind = tool_id;
     auto *parent = parentWidget();
@@ -436,6 +438,14 @@ QWidget *Toolbar::ensure_panel_for_tool(const QString &tool_id) {
         connect(shape_panel, &BaseSettingsPanel::size_changed, this, &Toolbar::stroke_width_changed);
         connect(shape_panel, &BaseSettingsPanel::opacity_changed, this, &Toolbar::opacity_changed);
         connect(shape_panel, &ShapeSettingsPanel::line_style_changed, this, &Toolbar::on_line_style_changed);
+        connect(shape_panel, &ShapeSettingsPanel::corner_radius_changed, this, [this](double radius) {
+            if (!temporary_edit_active) get_tool_settings_manager()->update_settings("rect", {{"corner_radius", radius}});
+            emit rectangle_radius_changed(radius);
+        });
+        connect(shape_panel, &ShapeSettingsPanel::aspect_ratio_changed, this, [this](double ratio) {
+            if (!temporary_edit_active) get_tool_settings_manager()->update_settings("rect", {{"aspect_ratio", ratio}});
+            emit rectangle_ratio_changed(ratio);
+        });
         shape_panel->hide();
         created = true;
     }
@@ -446,6 +456,7 @@ QWidget *Toolbar::ensure_panel_for_tool(const QString &tool_id) {
         connect(arrow_panel, &ArrowSettingsPanel::size_changed, this, &Toolbar::stroke_width_changed);
         connect(arrow_panel, &ArrowSettingsPanel::opacity_changed, this, &Toolbar::opacity_changed);
         connect(arrow_panel, &ArrowSettingsPanel::arrow_style_changed, this, &Toolbar::on_arrow_style_changed);
+        connect(arrow_panel, &ArrowSettingsPanel::line_style_changed, this, &Toolbar::on_line_style_changed);
         arrow_panel->hide();
         created = true;
     }
@@ -544,10 +555,16 @@ void Toolbar::sync_panel_from_settings(const QString &tool_id) {
     } else if (tool_id == "pen" || tool_id == "highlighter") {
         paint_panel->set_line_style(settings->get("line_style").toString());
         if (tool_id == "highlighter") paint_panel->set_highlighter_mode(settings->get("draw_mode").toString());
-    } else if (tool_id == "rect" || tool_id == "ellipse") {
+    } else if (tool_id == "rect" || tool_id == "ellipse" || tool_id == "line") {
         shape_panel->set_line_style(settings->get("line_style").toString());
+        shape_panel->set_tool(tool_id);
+        if (tool_id == "rect") {
+            { const QSignalBlocker block(shape_panel->corner_spin); shape_panel->corner_spin->setMaximum(10000); }
+            shape_panel->set_rectangle_state(settings->get("corner_radius",0).toDouble(), settings->get("aspect_ratio",0.).toDouble());
+        }
     } else if (tool_id == "arrow") {
         arrow_panel->set_arrow_style(settings->get("arrow_style").toString());
+        arrow_panel->set_line_style(settings->get("line_style","solid").toString());
     } else if (tool_id == "number") {
         number_panel->set_style(settings->get("style").toString());
     } else if (tool_id == "mosaic") {
@@ -732,8 +749,8 @@ void Toolbar::on_arrow_style_changed(const QString &style) {
 void Toolbar::on_line_style_changed(const QString &style) {
     if (!temporary_edit_active) {
         const auto tool_id = current_tool.value_or("pen");
-        if (tool_id == "rect" || tool_id == "ellipse") get_tool_settings_manager()->update_settings(tool_id, {{"line_style", style}});
-        else if (tool_id == "pen") get_tool_settings_manager()->update_settings("pen", {{"line_style", style}});
+        if (tool_id == "rect" || tool_id == "ellipse" || tool_id == "line") get_tool_settings_manager()->update_settings(tool_id, {{"line_style", style}});
+        else if (tool_id == "pen" || tool_id == "arrow") get_tool_settings_manager()->update_settings(tool_id, {{"line_style", style}});
     }
     emit line_style_changed(style);
 }

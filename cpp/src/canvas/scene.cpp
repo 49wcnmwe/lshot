@@ -16,6 +16,7 @@
 #include "tools/number.h"
 #include "tools/pen.h"
 #include "tools/rect.h"
+#include "tools/line.h"
 #include "tools/spotlight.h"
 #include "tools/text.h"
 #include "tools/watermark.h"
@@ -58,6 +59,7 @@ CanvasScene::CanvasScene(const QImage &background_image, const QRectF &rect, boo
     tool_controller->register_tool(std::make_unique<CursorTool>());
     tool_controller->register_tool(std::make_unique<PenTool>());
     tool_controller->register_tool(std::make_unique<RectTool>());
+    tool_controller->register_tool(std::make_unique<LineTool>());
     tool_controller->register_tool(std::make_unique<EllipseTool>());
     tool_controller->register_tool(std::make_unique<ArrowTool>());
     tool_controller->register_tool(std::make_unique<TextTool>());

@@ -1,4 +1,5 @@
 #include "canvas/view.h"
+#include "core/aspect_geometry.h"
 #include "canvas/canvas_host.h"
 #include "canvas/handle_overlay.h"
 #include "canvas/items/arrow_item.h"
@@ -609,6 +610,7 @@ void CanvasView::show_panel_for_selection(QGraphicsItem *item, Toolbar *toolbar)
         if (toolbar->text_panel) toolbar->text_panel->set_state_from_item(dynamic_cast<QGraphicsTextItem *>(item));
     } else if (*tool_id == "arrow") {
         if (auto *arrow = dynamic_cast<ArrowItem *>(item); arrow && toolbar->arrow_panel) {
+            toolbar->arrow_panel->set_line_style(arrow->line_style);
             toolbar->arrow_panel->set_arrow_style(arrow->_arrow_style);
             toolbar->arrow_panel->set_color(arrow->color);
         }
@@ -617,7 +619,7 @@ void CanvasView::show_panel_for_selection(QGraphicsItem *item, Toolbar *toolbar)
             toolbar->paint_panel->set_state_from_item(item);
             if (dynamic_cast<RectItem *>(item)) toolbar->paint_panel->set_highlighter_mode("rect");
         }
-    } else if (*tool_id == "rect" || *tool_id == "ellipse") {
+    } else if (*tool_id == "rect" || *tool_id == "ellipse" || *tool_id == "line") {
         if (toolbar->shape_panel) toolbar->shape_panel->set_state_from_item(item);
     } else if (*tool_id == "number") {
         if (auto *number = dynamic_cast<NumberItem *>(item); number && toolbar->number_panel) toolbar->number_panel->set_style(number->style);
@@ -1062,7 +1064,10 @@ void CanvasView::mouseReleaseEvent(QMouseEvent *event) {
         event->accept();
         return;
     }
-    if (smart_edit_controller->handle_edit_release(scene_pos, event->button())) return;
+    if (smart_edit_controller->handle_edit_release(scene_pos, event->button())) {
+        sync_selection_style_to_toolbar(smart_edit_controller->selected_item());
+        return;
+    }
     smart_edit_controller->handle_release(event->pos(), scene_pos, event->button());
     if (smart_edit_controller->selected_item()) update_edit_handles();
     pending_text_edit->settle(event, scene_pos);
@@ -1271,13 +1276,34 @@ void CanvasView::apply_opacity_change_to_selection(double opacity) {
     if (updated) canvas_scene->update();
 }
 
+void CanvasView::apply_rectangle_parameters(std::optional<double> radius, std::optional<double> ratio) {
+    auto *item = dynamic_cast<RectItem *>(selected_drawing_item());
+    if (!item || item->is_highlighter_rect || !smart_edit_controller) return;
+    auto before = smart_edit_controller->capture_layer_state(item);
+    if (radius) item->set_corner_radius(std::clamp(*radius, 0., std::min(item->rect().width(),item->rect().height())/2));
+    if (ratio) {
+        item->aspect_ratio = valid_aspect(*ratio) ? *ratio : 0.;
+        if (item->aspect_ratio > 0) item->setRect(constrain_aspect(item->rect(), item->aspect_ratio, Qt::BottomEdge|Qt::RightEdge));
+    }
+    auto after = smart_edit_controller->capture_layer_state(item);
+    if (before && after && *before != *after) canvas_scene->undo_stack->push(new EditItemCommand(ItemReference(item), *before, *after));
+    update_edit_handles(); canvas_scene->update(); sync_selection_style_to_toolbar(item);
+}
 void CanvasView::apply_line_style_change_to_selection(const QString &style) {
     auto *controller = smart_edit_controller.get();
     if (!controller) return;
     auto *selected = controller->selected_item();
     // Only pen, rect and ellipse have line styles; ownership, not class, decides.
     const auto owner = selected ? controller->get_item_tool_id(selected) : std::nullopt;
-    if (!owner || (*owner != "pen" && *owner != "rect" && *owner != "ellipse")) return;
+    if (!owner) return;
+    if (auto *arrow = dynamic_cast<ArrowItem *>(selected)) {
+        const auto before = controller->capture_layer_state(arrow);
+        arrow->line_style = style=="dashed"?"dashed":"solid"; arrow->update_geometry(); arrow->update();
+        const auto after = controller->capture_layer_state(arrow);
+        if (before && after && *before != *after) canvas_scene->undo_stack->push(new EditItemCommand(ItemReference(arrow),*before,*after));
+        canvas_scene->update();return;
+    }
+    if (*owner != "pen" && *owner != "rect" && *owner != "ellipse" && *owner != "line") return;
     auto *shape = dynamic_cast<QAbstractGraphicsShapeItem *>(selected);
     if (!shape) return;
     QPen pen = shape->pen();

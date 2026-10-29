@@ -1,5 +1,6 @@
 #pragma once
 #include <QLabel>
+#include <QDoubleSpinBox>
 #include <QPushButton>
 #include <QRectF>
 #include <QWidget>
@@ -40,6 +41,7 @@ public:
     // The action buttons show only once the selection is confirmed.
     void set_confirmed(bool confirmed);
     void update_info_text(const QRectF &rect);
+    QDoubleSpinBox *ratio_width = nullptr, *ratio_height = nullptr;
     QPushButton *btn_rounded = nullptr;
     QPushButton *btn_lock = nullptr;
     QPushButton *btn_border = nullptr;
@@ -48,6 +50,7 @@ signals:
     void border_toggled(bool checked);
     void rounded_toggled(bool checked);
     void lock_ratio_toggled(bool checked);
+    void ratio_requested(double width, double height);
     // Pressed starts a single refresh or a long press; released ends it.
     void refresh_pressed();
     void refresh_released();

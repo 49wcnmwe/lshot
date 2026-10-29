@@ -320,6 +320,15 @@ void ArrowItem::update_geometry() {
         if (_bend_points) pieces.push_back(bend_shaft_path(a, b, f.mid, *_bend_points, u_start, u_end, w_a, w_b));
         else pieces.push_back(shaft_path(a, b, f.mid, u_start, u_end, w_a, w_b, QPointF(f.end.x() - f.start.x(), f.end.y() - f.start.y())));
     }
+    if (line_style == "dashed" && !pieces.empty()) {
+        QPainterPath centre(a);
+        if (_bend_points) centre.cubicTo((*_bend_points)[0], (*_bend_points)[1], b);
+        else if (_control_modified) centre.quadTo(_control_pos, b);
+        else centre.lineTo(b);
+        QPainterPathStroker dash; dash.setWidth(std::max(w_a,w_b)*1.05);
+        dash.setCapStyle(Qt::FlatCap); dash.setDashPattern(QVector<qreal>{4.,3.});
+        pieces.front() = pieces.front().intersected(dash.createStroke(centre));
+    }
     pieces.push_back(head_path(spec.start, f.start, QPointF(-u_start.x(), -u_start.y()), m));
     pieces.push_back(head_path(spec.end, f.end, u_end, m));
     QPainterPath filled;
