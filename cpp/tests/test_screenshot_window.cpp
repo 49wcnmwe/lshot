@@ -1036,7 +1036,8 @@ private slots:
         QVERIFY(arrow);
         QCOMPARE(window->scene->tool_controller->current_tool_id(), QString("arrow"));
         QVERIFY(!controller->is_cross_tool_selection());
-        for (const QPoint &spot : {QPoint(60, 110), QPoint(195, 75), QPoint(200, 160)}) {
+        // Filled dots are circles now: click inside the dot rather than the old ellipse's left edge.
+        for (const QPoint &spot : {QPoint(90, 120), QPoint(195, 75), QPoint(200, 160)}) {
             ctrl_click(spot);
             QVERIFY2(controller->selected_item(), qPrintable(QString("%1,%2").arg(spot.x()).arg(spot.y())));
         }

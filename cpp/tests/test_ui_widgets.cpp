@@ -3,6 +3,7 @@
 #include "core/i18n.h"
 #include "core/shortcut_manager.h"
 #include "core/ui_scale.h"
+#include "core/ui_theme.h"
 #include "pin/pin_toolbar.h"
 #include "settings/color_formats.h"
 #include "settings/tool_settings.h"
@@ -1565,7 +1566,7 @@ private slots:
         dialog.eyedropper_button->click();
         QVERIFY(dialog.picking_screen());
         QVERIFY(dialog.eyedropper_button->isChecked());
-        QCOMPARE(dialog.eyedropper_button->grab().toImage().pixelColor(4, 4), QColor("#58748D"));
+        QCOMPARE(dialog.eyedropper_button->grab().toImage().pixelColor(4, 4), QColor(get_ui_theme()->tokens().accent_strong));
         QCOMPARE(QWidget::mouseGrabber(), &dialog);
         QCOMPARE(QWidget::keyboardGrabber(), &dialog);
         QVERIFY(QApplication::overrideCursor());

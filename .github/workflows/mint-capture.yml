@@ -31,15 +31,26 @@ jobs:
           python -m pip install py7zr==1.1.4
           python scripts/install_qt.py
           if ($LASTEXITCODE -ne 0) { throw 'Qt setup failed' }
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        if: steps.qt.outputs.cache-hit != 'true'
+        with:
+          path: cpp/.sdk/6.11.0/msvc2022_64
+          key: qt-6.11.0-x64-${{ hashFiles('cpp/scripts/install_qt.py') }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           workspaces: cpp/native -> ../build/msvc/native
+          cache-on-failure: true
+          cache-workspace-crates: true
       - name: Build application and tests
         run: .\scripts\build.ps1 -Configuration Release -SkipTests -NoUpdates -Targets jietuba_cpp,jietuba_mint_tests,jietuba_canvas_items_tests,jietuba_ui_widgets_tests,jietuba_screenshot_window_tests,jietuba_save_image_dialog_tests
       - name: Test capture changes
+        id: tests
         run: |
           ctest --test-dir build/msvc -C Release --output-on-failure -R 'mint_capture|canvas_items|ui_widgets|screenshot_window|save_image_dialog' -E '_desktop$|_windows_parity$'
           if ($LASTEXITCODE -ne 0) { throw 'Capture regression tests failed' }
+      - name: Show failed test details
+        if: failure() && steps.tests.outcome == 'failure'
+        run: .\scripts\show_failed_tests.ps1 -BuildDir build\msvc -Config Release
       - uses: actions/upload-artifact@v4
         with:
           name: lshot-windows-x64
