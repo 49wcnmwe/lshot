@@ -36,6 +36,15 @@ void SelectionDrag::perform(const QPointF &scene_pos) {
 }
 
 void SelectionDrag::end() {
+    if (!dragging) {
+        // A smart-selection click must obey the active ratio too.
+        auto *scene = view_->canvas_scene;
+        if (const auto &constraint = scene->selection_item->creation_constraint; constraint && !scene->selection_model->rect().isEmpty()) {
+            const auto current = scene->selection_model->rect();
+            auto rect = constraint(current.topLeft(), current.bottomRight());
+            scene->selection_model->set_rect(rect);
+        }
+    }
     active = false;
     dragging = false;
     view_->canvas_scene->selection_model->stop_dragging();

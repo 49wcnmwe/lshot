@@ -30,6 +30,15 @@ void LockRatioLogic::install_hook() {
             const double available_height = end.y() < start.y() ? start.y() - bounds.top() : bounds.bottom() - start.y();
             const double factor = std::clamp(std::min(available_width / width, available_height / height), 0., 1.);
             width *= factor; height *= factor;
+            // Keep the model's minimum without independently clamping width and height.
+            width = std::max({width, 8., 8. * *ratio_});
+            height = width / *ratio_;
+            auto fitted = QRectF(start, start + QPointF(end.x() < start.x() ? -width : width, end.y() < start.y() ? -height : height)).normalized();
+            if (width <= bounds.width() && height <= bounds.height()) {
+                fitted.moveLeft(std::clamp(fitted.left(), bounds.left(), bounds.right() - width));
+                fitted.moveTop(std::clamp(fitted.top(), bounds.top(), bounds.bottom() - height));
+            }
+            return fitted;
         }
         return QRectF(start, start + QPointF(end.x() < start.x() ? -width : width, end.y() < start.y() ? -height : height)).normalized();
     };

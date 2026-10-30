@@ -145,6 +145,56 @@ private slots:
         QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 80));
         session.view.selection_drag->end();
     }
+    void capture_ratio_applies_to_click_selection() {
+        QTemporaryDir dir;
+        QSettings storage(dir.filePath("capture.ini"), QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        CaptureRatioSession session(config);
+        auto hovered = QRectF(20, 30, 160, 80);
+        session.scene.selection_model->set_rect(hovered);
+        session.view.selection_drag->begin(QPointF(60, 60));
+        session.view.selection_drag->end();
+        QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 160));
+    }
+    void capture_ratio_keeps_minimum_near_screen_edge() {
+        QTemporaryDir dir;
+        QSettings storage(dir.filePath("capture.ini"), QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        CaptureRatioSession session(config);
+        auto *apply = session.panel.findChild<QPushButton *>("capture_ratio_apply");
+        QVERIFY(apply);
+        session.panel.ratio_width->setValue(4);
+        session.panel.ratio_height->setValue(3);
+        apply->click();
+        session.view.selection_drag->begin(QPointF(798, 598));
+        session.view.selection_drag->perform(QPointF(820, 620));
+        const auto rect = session.scene.selection_model->rect();
+        QVERIFY(std::abs(rect.width() / rect.height() - 4. / 3.) < .0001);
+        QVERIFY(rect.width() >= 8 && rect.height() >= 8);
+        QVERIFY(session.scene.sceneRect().contains(rect));
+        session.view.selection_drag->end();
+    }
+    void capture_ratio_applies_near_screen_edge() {
+        QTemporaryDir dir;
+        QSettings storage(dir.filePath("capture.ini"), QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        config.set_app_setting("screenshot_aspect_locked", false);
+        CaptureRatioSession session(config);
+        session.scene.preset_selection(QRectF(790, 590, 10, 10));
+        auto *apply = session.panel.findChild<QPushButton *>("capture_ratio_apply");
+        QVERIFY(apply);
+        session.panel.ratio_width->setValue(16);
+        session.panel.ratio_height->setValue(9);
+        session.panel.btn_lock->setChecked(true);
+        apply->click();
+        const auto rect = session.scene.selection_model->rect();
+        QVERIFY(std::abs(rect.width() / rect.height() - 16. / 9.) < .0001);
+        QVERIFY(rect.width() >= 8 && rect.height() >= 8);
+        QVERIFY(session.scene.sceneRect().contains(rect));
+        QVERIFY(config.get_app_setting("screenshot_aspect_locked").toBool());
+        QCOMPARE(config.get_app_setting("screenshot_aspect_width").toDouble(), 16.);
+        QCOMPARE(config.get_app_setting("screenshot_aspect_height").toDouble(), 9.);
+    }
     void custom_defaults_and_visible_tools() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());

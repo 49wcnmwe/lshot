@@ -1,6 +1,7 @@
 #include "ui/selection_info/controller.h"
 #include "core/aspect_geometry.h"
 #include <QGraphicsScene>
+#include <QToolTip>
 #include "canvas/selection_model.h"
 #include "canvas/items/selection_item.h"
 #include "capture/capture_service.h"
@@ -111,8 +112,15 @@ void SelectionInfoController::apply_capture_ratio(double width, double height) {
         double h = w / ratio;
         if (const auto *scene = selection_item->scene()) {
             const auto limit = scene->sceneRect();
-            const double factor = std::min({1., (limit.right() - rect.left()) / w, (limit.bottom() - rect.top()) / h});
-            w *= std::max(0., factor); h *= std::max(0., factor);
+            const double available = std::min(limit.width(), limit.height() * ratio);
+            if (available < std::max(model->min_size.width(), model->min_size.height() * ratio)) {
+                QToolTip::showText(panel->btn_apply_ratio->mapToGlobal(QPoint(0, panel->height())), QString::fromUtf8("此比例无法容纳最小截图区域，请调整比例"), panel->btn_apply_ratio);
+                return;
+            }
+            w = std::min(w, available); h = w / ratio;
+            rect.setSize(QSizeF(w, h));
+            rect.moveLeft(std::clamp(rect.left(), limit.left(), limit.right() - w));
+            rect.moveTop(std::clamp(rect.top(), limit.top(), limit.bottom() - h));
         }
         if (w < model->min_size.width() || h < model->min_size.height()) return;
         rect.setSize(QSizeF(w, h));
