@@ -1,8 +1,8 @@
 {
   "tools": {
     "pen": {
-      "color": "#FF0000",
-      "stroke_width": 12,
+      "color": "#347B59",
+      "stroke_width": 3,
       "opacity": 1.0,
       "line_style": "solid"
     },
@@ -36,24 +36,26 @@
       "line_style": "solid"
     },
     "rect": {
-      "color": "#FF0000",
-      "stroke_width": 9,
+      "color": "#347B59",
+      "stroke_width": 3,
       "opacity": 1.0,
       "line_style": "solid",
-      "corner_radius": 0
+      "corner_radius": 0,
+      "aspect_ratio": 0.0
     },
     "ellipse": {
-      "color": "#FF0000",
-      "stroke_width": 9,
+      "color": "#347B59",
+      "stroke_width": 3,
       "opacity": 1.0,
       "line_style": "solid"
     },
     "arrow": {
-      "color": "#FF0000",
-      "stroke_width": 9,
+      "color": "#347B59",
+      "stroke_width": 3,
       "opacity": 1.0,
       "arrow_size": 9,
-      "arrow_style": "single"
+      "arrow_style": "single",
+      "line_style": "solid"
     },
     "text": {
       "color": "#000000",
@@ -79,6 +81,12 @@
     "eraser": {
       "stroke_width": 25,
       "opacity": 1.0
+    },
+    "line": {
+      "color": "#347B59",
+      "stroke_width": 3,
+      "opacity": 1.0,
+      "line_style": "solid"
     }
   },
   "tool_order": [
@@ -92,7 +100,8 @@
     "arrow",
     "text",
     "number",
-    "eraser"
+    "eraser",
+    "line"
   ],
   "tool_types": {
     "pen": {
@@ -135,7 +144,8 @@
       "stroke_width": "int",
       "opacity": "float",
       "line_style": "str",
-      "corner_radius": "int"
+      "corner_radius": "float",
+      "aspect_ratio": "float"
     },
     "ellipse": {
       "color": "str",
@@ -148,7 +158,8 @@
       "stroke_width": "int",
       "opacity": "float",
       "arrow_size": "int",
-      "arrow_style": "str"
+      "arrow_style": "str",
+      "line_style": "str"
     },
     "text": {
       "color": "str",
@@ -174,6 +185,12 @@
     "eraser": {
       "stroke_width": "int",
       "opacity": "float"
+    },
+    "line": {
+      "color": "str",
+      "stroke_width": "int",
+      "opacity": "float",
+      "line_style": "str"
     }
   }
 }

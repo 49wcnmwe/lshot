@@ -135,6 +135,7 @@ void EllipseItem::setRect(const QRectF &rect) { QGraphicsEllipseItem::setRect(re
 QPainterPath EllipseItem::shape() const {
     if (shape_cache_) return *shape_cache_;
     QPainterPath path; path.addEllipse(rect());
+    if (filled_dot) return path;
     shape_cache_ = stroke_shape(path, pen().widthF() + CLICK_MARGIN * 2, Qt::RoundCap, Qt::RoundJoin); return *shape_cache_;
 }
 QRectF EllipseItem::boundingRect() const {
@@ -142,7 +143,7 @@ QRectF EllipseItem::boundingRect() const {
     return QGraphicsEllipseItem::boundingRect().adjusted(-extra, -extra, extra, extra);
 }
 void EllipseItem::paint(QPainter *p, const QStyleOptionGraphicsItem *, QWidget *) {
-    p->setRenderHint(QPainter::Antialiasing); p->setPen(pen()); p->setBrush(brush()); p->drawEllipse(rect());
+    p->setRenderHint(QPainter::Antialiasing); p->setPen(pen()); p->setBrush(filled_dot ? QBrush(pen().color()) : brush()); p->drawEllipse(rect());
     if (auto selection = selection_frame_pen()) { p->setBrush(Qt::NoBrush); p->setPen(*selection); p->drawEllipse(rect()); }
 }
 void EllipseItem::set_stroke_width(qreal width) { set_width(this, width); }

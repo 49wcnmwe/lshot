@@ -20,14 +20,14 @@ namespace jietuba {
 namespace {
 // The panel background is a fixed texture rather than a blur of what lies
 // behind: pin toolbars float over the live desktop with nothing to blur.
-const QColor PANEL_TOP("#fcfdff");
-const QColor PANEL_BOTTOM("#eef2f8");
+const QColor PANEL_TOP(250,253,251,225);
+const QColor PANEL_BOTTOM(239,247,242,225);
 // (x ratio, y ratio, base radius, RGBA): muted glows imitating blurred colour behind.
 struct Glow { double fx, fy, base_radius; int r, g, b, a; };
 constexpr Glow PANEL_GLOWS[] = {
-    {0.10, 0.0, 230, 120, 170, 255, 46},
-    {0.58, 1.2, 260, 190, 160, 255, 34},
-    {0.96, 0.0, 200, 255, 190, 160, 36},
+    {0.10, 0.0, 230, 110, 175, 135, 15},
+    {0.58, 1.2, 260, 110, 175, 135, 10},
+    {0.96, 0.0, 200, 110, 175, 135, 10},
 };
 constexpr double PANEL_NOISE_OPACITY = 0.015;
 const QColor PANEL_HIGHLIGHT(255, 255, 255, 235);

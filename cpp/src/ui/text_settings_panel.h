@@ -39,6 +39,7 @@ public:
     static constexpr int BASE_OUTLINE_SLIDER_WIDTH = 108;
     explicit TextSettingsPanel(QWidget *parent = nullptr);
     void apply_scale();
+    void set_opacity(int opacity);
     void set_background_settings(bool enabled, const QColor &color, int opacity);
     void set_outline_settings(bool enabled, const QColor &color, const QVariant &width);
     void set_shadow_settings(bool enabled, const QColor &color);
@@ -64,6 +65,7 @@ public:
     QColor shadow_color;
     PillComboBox *font_combo = nullptr;
     StepperWidget *size_spin = nullptr;
+    StepperWidget *opacity_spin = nullptr;
     QPushButton *bold_btn = nullptr, *italic_btn = nullptr, *underline_btn = nullptr;
     QPushButton *background_btn = nullptr, *outline_btn = nullptr, *shadow_btn = nullptr;
     ColorPickerButton *color_btn = nullptr;
@@ -74,6 +76,7 @@ public:
 signals:
     void font_changed(const QFont &font);
     void color_changed(const QColor &color);
+    void opacity_changed(int opacity);
     void background_changed(bool enabled, const QColor &color, int opacity);
     // width is one of TextItem::OUTLINE_WIDTH_LEVELS.
     void outline_changed(bool enabled, const QColor &color, double width);

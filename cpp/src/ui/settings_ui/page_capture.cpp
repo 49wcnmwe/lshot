@@ -323,6 +323,12 @@ QWidget *create_capture_page(SettingsDialog *dialog) {
                 "with the time updated; otherwise none is added. Screenshots taken with mouse shortcuts follow the same rule.",
                 config->get_screenshot_watermark_auto(), "watermark_auto_toggle");
     layout->addWidget(grp_watermark);
+    auto *watermark_text = new LineEdit(view);
+    watermark_text->setObjectName("watermark_text_edit");
+    watermark_text->setPlaceholderText(QString::fromUtf8("水印内容：截图时点击水印图标即可添加"));
+    watermark_text->setText(config->get_screenshot_watermark_text());
+    dialog->set_attr("watermark_text_edit",watermark_text);
+    layout->addWidget(watermark_text);
     layout->addStretch();
     scroll->setWidget(view);
     return scroll;

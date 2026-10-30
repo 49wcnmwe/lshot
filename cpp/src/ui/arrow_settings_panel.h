@@ -44,11 +44,14 @@ public:
     int current_size = 3;
     QColor current_color = QColor(Qt::red);
     PillComboBox *arrow_style_combo = nullptr;
+    PillComboBox *line_style_combo = nullptr;
+    void set_line_style(const QString &style);
     StepperWidget *size_spin = nullptr;
     StepperWidget *opacity_spin = nullptr;
     ColorPickerButton *color_btn = nullptr;
 signals:
     void arrow_style_changed(const QString &style);
+    void line_style_changed(const QString &style);
     void size_changed(int size);
     void color_changed(const QColor &color);
     void opacity_changed(int opacity);

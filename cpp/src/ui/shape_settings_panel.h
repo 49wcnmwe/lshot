@@ -1,5 +1,7 @@
 #pragma once
 #include "ui/base_settings_panel.h"
+#include <QDoubleSpinBox>
+#include <QCheckBox>
 
 class QGraphicsItem;
 
@@ -15,10 +17,17 @@ public:
     QString line_style() const override { return current_line_style; }
     void set_line_style(const QString &value) override;
     void set_state_from_item(QGraphicsItem *item);
+    void set_tool(const QString &tool);
+    void set_rectangle_state(double radius, double aspect);
+    QDoubleSpinBox *corner_spin = nullptr, *ratio_width_spin = nullptr, *ratio_height_spin = nullptr;
+    QCheckBox *ratio_lock = nullptr;
+    QWidget *rectangle_controls = nullptr;
     QString current_line_style = "solid";
     PillComboBox *line_style_combo = nullptr;
 signals:
     void line_style_changed(const QString &style);
+    void corner_radius_changed(double radius);
+    void aspect_ratio_changed(double ratio);
 protected:
     std::pair<int, int> size_range() const override { return {1, 40}; }
     int size_default() const override { return 3; }

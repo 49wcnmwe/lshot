@@ -1,6 +1,8 @@
 #include "ui/selection_info/lock_ratio.h"
 #include "canvas/items/selection_item.h"
 #include "core/logger.h"
+#include "core/aspect_geometry.h"
+#include <QGraphicsScene>
 
 namespace jietuba {
 LockRatioLogic::LockRatioLogic(SelectionItem *selection_item) : item_(selection_item) { install_hook(); }
@@ -17,41 +19,50 @@ void LockRatioLogic::set_enabled(bool enabled, const std::optional<QRectF> &curr
 }
 
 void LockRatioLogic::install_hook() {
-    item_->resize_constraint = [this](const QRectF &rect, const QRectF &, int handle) {
-        if (enabled_ && ratio_ && *ratio_ > 0) return constrain(rect, handle);
+    item_->creation_constraint = [this](const QPointF &start, const QPointF &end) {
+        if (!enabled_ || !ratio_ || !valid_aspect(*ratio_)) return QRectF(start, end).normalized();
+        auto rect = aspect_drag_rect(start, end, *ratio_);
+        double width = std::max({rect.width(), 8., 8. * *ratio_});
+        double height = width / *ratio_;
+        if (const auto *scene = item_->scene()) {
+            const auto bounds = scene->sceneRect();
+            const double available_width = end.x() < start.x() ? start.x() - bounds.left() : bounds.right() - start.x();
+            const double available_height = end.y() < start.y() ? start.y() - bounds.top() : bounds.bottom() - start.y();
+            const double factor = std::clamp(std::min(available_width / width, available_height / height), 0., 1.);
+            width *= factor; height *= factor;
+            // Keep the model's minimum without independently clamping width and height.
+            width = std::max({width, 8., 8. * *ratio_});
+            height = width / *ratio_;
+            auto fitted = QRectF(start, start + QPointF(end.x() < start.x() ? -width : width, end.y() < start.y() ? -height : height)).normalized();
+            if (width <= bounds.width() && height <= bounds.height()) {
+                fitted.moveLeft(std::clamp(fitted.left(), bounds.left(), bounds.right() - width));
+                fitted.moveTop(std::clamp(fitted.top(), bounds.top(), bounds.bottom() - height));
+            }
+            return fitted;
+        }
+        return QRectF(start, start + QPointF(end.x() < start.x() ? -width : width, end.y() < start.y() ? -height : height)).normalized();
+    };
+    item_->resize_constraint = [this](const QRectF &rect, const QRectF &base, int handle) {
+        if (enabled_ && ratio_ && *ratio_ > 0) return constrain(rect, base, handle);
         return rect;
     };
     installed_ = true;
 }
 
-QRectF LockRatioLogic::constrain(const QRectF &rect, int handle) const {
-    const double ratio = *ratio_;
-    QRectF r(rect);
-    if (handle == SelectionItem::HANDLE_TOP_LEFT || handle == SelectionItem::HANDLE_TOP_RIGHT || handle == SelectionItem::HANDLE_BOTTOM_LEFT ||
-        handle == SelectionItem::HANDLE_BOTTOM_RIGHT) {
-        // Corners: width leads; top handles keep the bottom fixed, bottom handles the top.
-        const double h = ratio ? r.width() / ratio : r.height();
-        if (handle == SelectionItem::HANDLE_TOP_LEFT || handle == SelectionItem::HANDLE_TOP_RIGHT) r.setTop(r.bottom() - h);
-        else r.setBottom(r.top() + h);
-    } else if (handle == SelectionItem::HANDLE_LEFT || handle == SelectionItem::HANDLE_RIGHT) {
-        // Left/right: width leads, height follows around the centre.
-        const double h = ratio ? r.width() / ratio : r.height();
-        const double cy = r.center().y();
-        r.setTop(cy - h / 2);
-        r.setBottom(cy + h / 2);
-    } else if (handle == SelectionItem::HANDLE_TOP || handle == SelectionItem::HANDLE_BOTTOM) {
-        // Top/bottom: height leads, width follows around the centre.
-        const double w = ratio ? r.height() * ratio : r.width();
-        const double cx = r.center().x();
-        r.setLeft(cx - w / 2);
-        r.setRight(cx + w / 2);
-    }
-    return r;
+QRectF LockRatioLogic::constrain(const QRectF &rect, const QRectF &base, int handle) const {
+    Qt::Edges edges;
+    if (handle == SelectionItem::HANDLE_LEFT || handle == SelectionItem::HANDLE_TOP_LEFT || handle == SelectionItem::HANDLE_BOTTOM_LEFT) edges |= Qt::LeftEdge;
+    if (handle == SelectionItem::HANDLE_RIGHT || handle == SelectionItem::HANDLE_TOP_RIGHT || handle == SelectionItem::HANDLE_BOTTOM_RIGHT) edges |= Qt::RightEdge;
+    if (handle == SelectionItem::HANDLE_TOP || handle == SelectionItem::HANDLE_TOP_LEFT || handle == SelectionItem::HANDLE_TOP_RIGHT) edges |= Qt::TopEdge;
+    if (handle == SelectionItem::HANDLE_BOTTOM || handle == SelectionItem::HANDLE_BOTTOM_LEFT || handle == SelectionItem::HANDLE_BOTTOM_RIGHT) edges |= Qt::BottomEdge;
+    return constrain_aspect(rect, *ratio_, edges, base, QSizeF(8, 8));
+
 }
 
 void LockRatioLogic::uninstall() {
     if (installed_) {
         item_->resize_constraint = nullptr;
+        item_->creation_constraint = nullptr;
         installed_ = false;
     }
 }

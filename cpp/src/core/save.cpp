@@ -130,7 +130,8 @@ bool SaveService::save_qimage_to_path(const QImage &image, const QString &path, 
         if (!success) cleanup_failed_placeholder(path);
         return success;
     }
-    const bool success = image.save(path, format.toLatin1().constData(), format_has_quality(format) ? quality : -1);
+    const auto output = format == "JPG" ? flatten_for_pdf(image) : image;
+    const bool success = output.save(path, format.toLatin1().constData(), format_has_quality(format) ? quality : -1);
     if (!success) cleanup_failed_placeholder(path);
     return success;
 }
@@ -140,8 +141,9 @@ QByteArray SaveService::encode_image(const QImage &image, QString format, int qu
     QByteArray bytes;
     QBuffer buffer(&bytes);
     buffer.open(QIODevice::WriteOnly);
+    const auto output = format == "JPG" ? flatten_for_pdf(image) : image;
     const bool success = format == "PDF" ? save_pdf(image, &buffer, dpi)
-                                         : image.save(&buffer, format.toLatin1().constData(), format_has_quality(format) ? quality : -1);
+                                         : output.save(&buffer, format.toLatin1().constData(), format_has_quality(format) ? quality : -1);
     buffer.close();
     return success ? bytes : QByteArray();
 }

@@ -1,5 +1,6 @@
 #include "canvas/gestures.h"
 #include "canvas/items/text_item.h"
+#include "canvas/items/selection_item.h"
 #include "canvas/scene.h"
 #include "canvas/selection_model.h"
 #include "canvas/smart_edit_controller.h"
@@ -29,11 +30,21 @@ void SelectionDrag::perform(const QPointF &scene_pos) {
     if (!dragging && (scene_pos - start_pos).manhattanLength() > DRAG_THRESHOLD) dragging = true;
     if (dragging) {
         auto rect = QRectF(start_pos, scene_pos).normalized();
+        if (const auto &constraint = view_->canvas_scene->selection_item->creation_constraint) rect = constraint(start_pos, scene_pos);
         view_->canvas_scene->selection_model->set_rect(rect);
     }
 }
 
 void SelectionDrag::end() {
+    if (!dragging) {
+        // A smart-selection click must obey the active ratio too.
+        auto *scene = view_->canvas_scene;
+        if (const auto &constraint = scene->selection_item->creation_constraint; constraint && !scene->selection_model->rect().isEmpty()) {
+            const auto current = scene->selection_model->rect();
+            auto rect = constraint(current.topLeft(), current.bottomRight());
+            scene->selection_model->set_rect(rect);
+        }
+    }
     active = false;
     dragging = false;
     view_->canvas_scene->selection_model->stop_dragging();

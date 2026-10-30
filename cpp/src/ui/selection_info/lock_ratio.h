@@ -17,7 +17,7 @@ public:
     void uninstall();
 private:
     void install_hook();
-    QRectF constrain(const QRectF &rect, int handle) const;
+    QRectF constrain(const QRectF &rect, const QRectF &base, int handle) const;
     SelectionItem *item_;
     bool enabled_ = false;
     std::optional<double> ratio_;  // w / h

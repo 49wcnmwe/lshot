@@ -17,6 +17,6 @@ public:
     QPointF start_pos;
     RectItem *current_item = nullptr;
     QString line_style = "solid";
-    double corner_radius = 0;
+    double corner_radius = 0, aspect_ratio = 0;
 };
 }

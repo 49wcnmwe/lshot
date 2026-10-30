@@ -2673,7 +2673,7 @@ private slots:
         order.sort();
         QCOMPARE(listed, order);
         QCOMPARE(mode_in(tl::load_layout(*config_, tl::PIN), "pen"), tl::HIDE);
-        QCOMPARE(mode_in(tl::load_layout(*config_), "pen"), tl::SHOW);
+        QCOMPARE(mode_in(tl::load_layout(*config_), "pen"), tl::MORE);
         QVERIFY(toolbar->pen_btn->isHidden());
     }
 

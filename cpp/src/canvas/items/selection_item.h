@@ -39,6 +39,8 @@ public:
     // Adjusts the resized rect before it reaches the model (locked aspect ratio);
     // receives (rect, start rect, handle). Moves are never constrained.
     std::function<QRectF(const QRectF &, const QRectF &, int)> resize_constraint;
+    // Used by the initial drag, independently of resize handles.
+    std::function<QRectF(const QPointF &, const QPointF &)> creation_constraint;
     // Not while dragging, before confirmation, or when the selection is too small.
     bool handles_visible() const;
     // skip_corners for the rounded-corner preview, where corner handles cannot follow the arc.

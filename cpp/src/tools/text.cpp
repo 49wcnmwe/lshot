@@ -24,6 +24,7 @@ bool TextTool::on_press(const QPointF &pos, Qt::MouseButton button, ToolContext 
     font.setItalic(font_italic);
     font.setUnderline(font_underline);
     auto *item = new TextItem("", pos, font, ctx.color, always_on_top, true);
+    item->set_visual_opacity(ctx.opacity);
     item->set_outline(manager->get_setting("text", "outline_enabled").toBool(),
                       QColor(manager->get_setting("text", "outline_color").toString()),
                       manager->get_setting("text", "outline_width"));

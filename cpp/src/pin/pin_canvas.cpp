@@ -93,7 +93,11 @@ QGraphicsItem *PinCanvas::clone_graphics_item(QGraphicsItem *item) {
         // No range to move: in the pin scene it follows that scene's selection (the whole image).
         return new WatermarkItem(watermark->template_text(), watermark->style(), watermark->created_at());
     }
-    if (auto *stroke = dynamic_cast<StrokeItem *>(item)) return new StrokeItem(stroke->path(), QPen(stroke->pen()), stroke->is_highlighter);
+    if (auto *stroke = dynamic_cast<StrokeItem *>(item)) {
+        auto *cloned = new StrokeItem(stroke->path(), QPen(stroke->pen()), stroke->is_highlighter);
+        cloned->setData(Qt::UserRole+351,stroke->data(Qt::UserRole+351));
+        return cloned;
+    }
     if (auto *mosaic = dynamic_cast<MosaicItem *>(item))
         return new MosaicItem(mosaic->path(), mosaic->brush_width(), mosaic->block_size(), mosaic->reduced_image(), mosaic->background_rect(), mosaic->fill_mode(),
                               mosaic->smooth());
@@ -106,6 +110,7 @@ QGraphicsItem *PinCanvas::clone_graphics_item(QGraphicsItem *item) {
     if (auto *rect = dynamic_cast<RectItem *>(item)) {
         auto *cloned = new RectItem(QRectF(rect->rect()), QPen(rect->pen()), rect->get_corner_radius());
         cloned->setBrush(rect->brush());
+        cloned->aspect_ratio = rect->aspect_ratio;
         // Keeps the highlighter-rectangle marker.
         if (rect->is_highlighter_rect) {
             cloned->is_highlighter = true;
@@ -113,7 +118,11 @@ QGraphicsItem *PinCanvas::clone_graphics_item(QGraphicsItem *item) {
         }
         return cloned;
     }
-    if (auto *ellipse = dynamic_cast<EllipseItem *>(item)) return new EllipseItem(QRectF(ellipse->rect()), QPen(ellipse->pen()));
+    if (auto *ellipse = dynamic_cast<EllipseItem *>(item)) {
+        auto *cloned = new EllipseItem(QRectF(ellipse->rect()), QPen(ellipse->pen()));
+        cloned->filled_dot = ellipse->filled_dot;
+        return cloned;
+    }
     if (auto *arrow = dynamic_cast<ArrowItem *>(item)) {
         const QPen pen(QColor(arrow->color), arrow->base_width);
         const auto arrow_style = arrow->_arrow_style.isEmpty() ? QString("single") : arrow->_arrow_style;
@@ -121,6 +130,8 @@ QGraphicsItem *PinCanvas::clone_graphics_item(QGraphicsItem *item) {
         // Only a moved control point carries a curve.
         if (arrow->_control_modified) cloned->set_control_point(arrow->control_pos());
         if (arrow->has_bend_points()) cloned->set_bend_points(arrow->_bend_points);
+        cloned->line_style = arrow->line_style;
+        cloned->update_geometry();
         return cloned;
     }
     if (auto *text = dynamic_cast<TextItem *>(item)) {
@@ -251,6 +262,12 @@ void PinCanvas::connect_toolbar(PinToolbar *toolbar, CanvasView *view) {
     connect(toolbar, &Toolbar::mosaic_block_size_changed, this, [view](int value) { MosaicTool::apply_block_size_change(value, view); });
     connect(toolbar, &Toolbar::line_style_changed, this, [view](const QString &style) {
         if (view) view->apply_line_style_change_to_selection(style);
+    });
+    connect(toolbar, &Toolbar::rectangle_radius_changed, this, [view](double radius) {
+        if (view) view->apply_rectangle_parameters(radius, std::nullopt);
+    });
+    connect(toolbar, &Toolbar::rectangle_ratio_changed, this, [view](double ratio) {
+        if (view) view->apply_rectangle_parameters(std::nullopt, ratio);
     });
     // A highlighter mode switch refreshes the cursor at once.
     connect(toolbar, &Toolbar::highlighter_mode_changed, this, [view](const QString &) {

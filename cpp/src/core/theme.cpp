@@ -90,7 +90,7 @@ void ThemeManager::set_selection_handle_size(QString size) {
 }
 
 void ThemeManager::reset_to_defaults() {
-    set_theme_color(QColor("#40E0D0"));
+    set_theme_color(QColor("#287852"));
     set_mask_color(QColor(0, 0, 0, 120));
     set_selection_border_width(DEFAULT_BORDER_WIDTH);
     set_selection_handle_style(HANDLES_ALL);

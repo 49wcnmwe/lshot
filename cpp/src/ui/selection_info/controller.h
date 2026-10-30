@@ -56,7 +56,7 @@ private:
     void on_rect_changed(const QRectF &rect);
     void on_dragging_changed(bool is_dragging);
     void on_confirmed(const QRectF &rect);
-    void on_lock_ratio_toggled(bool checked);
+    void apply_capture_ratio(double width, double height);
     // Pressing refreshes once at once and starts long-press detection.
     void on_refresh_pressed();
     void on_refresh_released();

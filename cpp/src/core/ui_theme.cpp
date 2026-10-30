@@ -25,12 +25,12 @@ namespace {
 UIThemeTokens common_tokens(UIThemeMode mode) {
     UIThemeTokens t;
     t.mode = mode;
-    t.accent = "#6F8FAB";
-    t.accent_hover = "#627F99";
-    t.accent_pressed = "#526D85";
-    t.accent_strong = "#58748D";
-    t.accent_strong_hover = "#4F6A82";
-    t.accent_strong_pressed = "#465E73";
+    t.accent = "#347B59";
+    t.accent_hover = "#2D6E4E";
+    t.accent_pressed = "#245D41";
+    t.accent_strong = "#287852";
+    t.accent_strong_hover = "#226746";
+    t.accent_strong_pressed = "#1D583C";
     return t;
 }
 }
@@ -38,11 +38,11 @@ UIThemeTokens common_tokens(UIThemeMode mode) {
 const UIThemeTokens &LIGHT_TOKENS() {
     static const UIThemeTokens tokens = [] {
         auto t = common_tokens(UIThemeMode::LIGHT);
-        t.accent_soft = "#DFE8EF";
-        t.accent_text = "#465E73";
-        t.window = "#EEF0F3";
-        t.window_top = "#F5F6F8";
-        t.window_bottom = "#ECEEF1";
+        t.accent_soft = "#E1F0E7";
+        t.accent_text = "#1D583C";
+        t.window = "#F1F7F3";
+        t.window_top = "#F7FAF8";
+        t.window_bottom = "#EDF4EF";
         t.surface = "rgba(255, 255, 255, 0.92)";
         t.surface_strong = "rgba(255, 255, 255, 0.98)";
         t.surface_subtle = "rgba(248, 251, 253, 0.85)";
@@ -55,7 +55,7 @@ const UIThemeTokens &LIGHT_TOKENS() {
         t.window_border = "#D3D7DC";
         t.input_background = "#FFFFFF";
         t.popup_background = "#FFFFFF";
-        t.popup_hover = "#EAF2FA";
+        t.popup_hover = "#E4F1E8";
         t.separator = "rgba(98, 116, 105, 0.13)";
         t.switch_off = "#C4CCC6";
         t.success = "#3E9B63";

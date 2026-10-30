@@ -15,13 +15,14 @@ bool EllipseTool::on_press(const QPointF &pos, Qt::MouseButton button, ToolConte
     pen.setJoinStyle(Qt::RoundJoin);
     apply_line_style(pen, line_style);
     current_item = new EllipseItem(QRectF(pos, pos), pen);
+    current_item->filled_dot = true;
     ctx.scene->addItem(current_item);
     log_debug(T("开始绘制: {pos}", {{"pos", geometry_text(pos)}}), "EllipseTool");
     return true;
 }
 
 void EllipseTool::on_move(const QPointF &pos, ToolContext &) {
-    if (drawing && current_item) current_item->setRect(drag_rect(start_pos, pos, shift_held()));
+    if (drawing && current_item) current_item->setRect(drag_rect(start_pos, pos, true));
 }
 
 void EllipseTool::on_release(const QPointF &, ToolContext &ctx) {

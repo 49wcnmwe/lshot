@@ -1,5 +1,9 @@
 #include "ui/selection_info/controller.h"
+#include "core/aspect_geometry.h"
+#include <QGraphicsScene>
+#include <QToolTip>
 #include "canvas/selection_model.h"
+#include "canvas/items/selection_item.h"
 #include "capture/capture_service.h"
 #include "core/logger.h"
 #include "settings/tool_settings.h"
@@ -15,6 +19,14 @@ SelectionInfoController::SelectionInfoController(SelectionInfoPanel *panel, Sele
     : panel(panel), model(selection_model), selection_item(selection_item), export_service(export_service), mask_overlay(mask_overlay), config_(config_manager),
       parent_window_(parent_widget) {
     lock_ratio_ = std::make_unique<LockRatioLogic>(selection_item);
+    const auto restore_dimension = [](double value) { return std::isfinite(value) && value >= .01 && value <= 10000 ? value : 1.; };
+    const double width = restore_dimension(config_ ? config_->get_screenshot_aspect_width() : 1.);
+    const double height = restore_dimension(config_ ? config_->get_screenshot_aspect_height() : 1.);
+    const bool locked = config_ ? config_->get_screenshot_aspect_locked() : true;
+    panel->ratio_width->setValue(width);
+    panel->ratio_height->setValue(height);
+    panel->btn_lock->setChecked(locked);
+    lock_ratio_->set_enabled(locked, QRectF(0, 0, width, height));
     rounded_corners_ = new RoundedCornersLogic(parent_widget, panel->btn_rounded, selection_item, mask_overlay, export_service, selection_model, config_manager);
     border_shadow_ = new BorderShadowLogic(parent_widget, panel->btn_border, selection_item, mask_overlay, export_service, selection_model, config_manager,
                                            rounded_corners_);
@@ -31,6 +43,9 @@ SelectionInfoController::SelectionInfoController(SelectionInfoPanel *panel, Sele
 SelectionInfoController::~SelectionInfoController() { cleanup(); }
 
 void SelectionInfoController::connect_signals() {
+    model_connections_.append(QObject::connect(panel, &SelectionInfoPanel::ratio_requested, panel, [this](double width, double height) {
+        apply_capture_ratio(width, height);
+    }));
     model_connections_.append(QObject::connect(model, &SelectionModel::rectChanged, panel, [this](const QRectF &rect) { on_rect_changed(rect); }));
     model_connections_.append(QObject::connect(model, &SelectionModel::draggingChanged, panel, [this](bool dragging) { on_dragging_changed(dragging); }));
     model_connections_.append(QObject::connect(model, &SelectionModel::confirmed, panel, [this](const QRectF &rect) { on_confirmed(rect); }));
@@ -40,7 +55,6 @@ void SelectionInfoController::connect_signals() {
     model_connections_.append(QObject::connect(panel, &SelectionInfoPanel::rounded_toggled, panel, [this](bool checked) {
         if (rounded_corners_) rounded_corners_->set_enabled(checked);
     }));
-    model_connections_.append(QObject::connect(panel, &SelectionInfoPanel::lock_ratio_toggled, panel, [this](bool checked) { on_lock_ratio_toggled(checked); }));
     model_connections_.append(QObject::connect(panel, &SelectionInfoPanel::refresh_pressed, panel, [this] { on_refresh_pressed(); }));
     model_connections_.append(QObject::connect(panel, &SelectionInfoPanel::refresh_released, panel, [this] { on_refresh_released(); }));
 }
@@ -63,7 +77,7 @@ void SelectionInfoController::on_rect_changed(const QRectF &rect) {
 void SelectionInfoController::on_dragging_changed(bool is_dragging) {
     if (is_dragging) {
         // Hiding while dragging is a setting; otherwise the panel follows the selection.
-        if (config_->get_screenshot_info_hide_on_drag()) {
+        if (config_ && config_->get_screenshot_info_hide_on_drag()) {
             panel->hide();
         } else if (!model->rect().isEmpty()) {
             panel->update_info_text(model->rect());
@@ -88,8 +102,37 @@ void SelectionInfoController::on_confirmed(const QRectF &rect) {
     }
 }
 
-void SelectionInfoController::on_lock_ratio_toggled(bool checked) {
-    lock_ratio_->set_enabled(checked, checked ? std::optional<QRectF>(model->rect()) : std::nullopt);
+void SelectionInfoController::apply_capture_ratio(double width, double height) {
+    const bool locked = width > 0 && height > 0;
+    if (locked && !valid_aspect(width / height)) return;
+    auto rect = model->rect();
+    if (locked && !rect.isEmpty()) {
+        const double ratio = width / height;
+        double w = std::max({rect.width(), model->min_size.width(), model->min_size.height() * ratio});
+        double h = w / ratio;
+        if (const auto *scene = selection_item->scene()) {
+            const auto limit = scene->sceneRect();
+            const double available = std::min(limit.width(), limit.height() * ratio);
+            if (available < std::max(model->min_size.width(), model->min_size.height() * ratio)) {
+                QToolTip::showText(panel->btn_apply_ratio->mapToGlobal(QPoint(0, panel->height())), QString::fromUtf8("此比例无法容纳最小截图区域，请调整比例"), panel->btn_apply_ratio);
+                return;
+            }
+            w = std::min(w, available); h = w / ratio;
+            rect.setSize(QSizeF(w, h));
+            rect.moveLeft(std::clamp(rect.left(), limit.left(), limit.right() - w));
+            rect.moveTop(std::clamp(rect.top(), limit.top(), limit.bottom() - h));
+        }
+        if (w < model->min_size.width() || h < model->min_size.height()) return;
+        rect.setSize(QSizeF(w, h));
+    }
+    lock_ratio_->set_enabled(locked, locked ? std::optional<QRectF>(QRectF(0, 0, width, height)) : std::nullopt);
+    if (config_) {
+        config_->set_screenshot_aspect_locked(locked);
+        config_->set_screenshot_aspect_width(panel->ratio_width->value());
+        config_->set_screenshot_aspect_height(panel->ratio_height->value());
+        config_->qsettings.sync();
+    }
+    if (locked && !rect.isEmpty()) model->set_rect(rect);
 }
 
 void SelectionInfoController::on_refresh_pressed() {

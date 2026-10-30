@@ -68,6 +68,8 @@ private slots:
         if (!settings_) settings_ = new QSettings(dir_.filePath("settings.ini"), QSettings::IniFormat, this);
         config_ = get_tool_settings_manager(settings_);
         config_->set_screenshot_save_enabled(false);
+        // These cases verify exact window/control bounds; fixed-ratio clicks have dedicated mint coverage.
+        config_->set_screenshot_aspect_locked(false);
         config_->set_app_setting("ocr_enabled", false);
         config_->set_smart_selection_animation(false);
         probe_ = std::make_unique<QWidget>(nullptr, Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);

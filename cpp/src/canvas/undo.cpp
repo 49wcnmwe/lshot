@@ -189,6 +189,7 @@ void EditItemCommand::apply_state(const QVariantMap &state) {
             if (bends.size() == 2 && is_point(bends[0]) && is_point(bends[1])) arrow->_bend_points = std::array<QPointF, 2>{{bends[0].toPointF(), bends[1].toPointF()}};
             else arrow->_bend_points.reset();
         }
+        if(state.contains("arrow_line_style")) arrow->line_style = state.value("arrow_line_style").toString();
         const auto style = state.value("arrow_style"); if (style.isValid() && !style.isNull()) arrow->_arrow_style = style.toString();
     }
     const auto pen_state = state.value("pen_state");
@@ -208,6 +209,7 @@ void EditItemCommand::apply_state(const QVariantMap &state) {
     if (auto *arrow = dynamic_cast<ArrowItem *>(item)) {
         try { arrow->update_geometry(); } catch (const std::exception &e) { qWarning("update_geometry: %s", e.what()); }
     }
+    if (auto *r = dynamic_cast<RectItem *>(item); r && state.contains("aspect_ratio")) r->aspect_ratio = state.value("aspect_ratio").toDouble();
     const auto corner = state.value("corner_radius"); if (corner.isValid() && !corner.isNull()) if (auto *r = dynamic_cast<RectItem *>(item)) r->set_corner_radius(corner.toDouble());
     item->update();
 }

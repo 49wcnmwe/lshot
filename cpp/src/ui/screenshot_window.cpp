@@ -467,6 +467,8 @@ void ScreenshotWindow::connect_toolbar_signals() {
     connect(toolbar, &Toolbar::opacity_changed, this, &ScreenshotWindow::on_opacity_changed);
     connect(toolbar, &Toolbar::arrow_style_changed, this, &ScreenshotWindow::on_arrow_style_changed);
     connect(toolbar, &Toolbar::line_style_changed, this, &ScreenshotWindow::on_line_style_changed);
+    connect(toolbar, &Toolbar::rectangle_radius_changed, this, [this](double radius) { view->apply_rectangle_parameters(radius, std::nullopt); });
+    connect(toolbar, &Toolbar::rectangle_ratio_changed, this, [this](double ratio) { view->apply_rectangle_parameters(std::nullopt, ratio); });
     connect(toolbar, &Toolbar::number_next_changed, this, &ScreenshotWindow::on_number_next_changed);
     connect(toolbar, &Toolbar::number_style_changed, this, &ScreenshotWindow::on_number_style_changed);
     connect(toolbar, &Toolbar::mosaic_style_changed, this, &ScreenshotWindow::on_mosaic_style_changed);

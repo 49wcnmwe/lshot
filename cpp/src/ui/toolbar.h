@@ -133,7 +133,7 @@ public:
     ToolbarDragHandle *drag_handle = nullptr;
     QPushButton *long_screenshot_btn = nullptr, *save_btn = nullptr, *screenshot_translate_btn = nullptr;
     QPushButton *text_recognize_btn = nullptr, *scan_code_btn = nullptr, *gif_btn = nullptr, *copy_btn = nullptr;
-    QPushButton *pen_btn = nullptr, *highlighter_btn = nullptr, *mosaic_btn = nullptr, *spotlight_btn = nullptr;
+    QPushButton *line_btn = nullptr, *pen_btn = nullptr, *highlighter_btn = nullptr, *mosaic_btn = nullptr, *spotlight_btn = nullptr;
     QPushButton *watermark_btn = nullptr, *arrow_btn = nullptr, *number_btn = nullptr, *rect_btn = nullptr;
     QPushButton *ellipse_btn = nullptr, *text_btn = nullptr, *eraser_btn = nullptr;
     QPushButton *undo_btn = nullptr, *redo_btn = nullptr, *cancel_btn = nullptr, *pin_btn = nullptr, *confirm_btn = nullptr;
@@ -177,6 +177,8 @@ signals:
     void mosaic_style_changed(const QString &style);
     void mosaic_block_size_changed(int block_size);
     void line_style_changed(const QString &style);
+    void rectangle_radius_changed(double radius);
+    void rectangle_ratio_changed(double ratio);
     void highlighter_mode_changed(const QString &mode);
     // Applying the watermark (reusing an existing layer); style changes are
     // (WatermarkStyle field, value); text is a template with time placeholders.
