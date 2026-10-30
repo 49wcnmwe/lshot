@@ -17,13 +17,13 @@ try {
     & "$PSScriptRoot/build.ps1" -Configuration Release -SkipTests -NoUpdates -Targets jietuba_cpp,jietuba_mint_tests
     if ($LASTEXITCODE -ne 0) { throw 'Regression baseline did not compile' }
     $env:QT_QPA_PLATFORM = 'offscreen'
-    $env:JIETUBA_TEST_SANDBOX = Join-Path $projectRoot 'build/msvc/ratio-baseline-sandbox'
-    New-Item -ItemType Directory -Force -Path $env:JIETUBA_TEST_SANDBOX | Out-Null
-    $output = & "$projectRoot/build/msvc/Release/jietuba_mint_tests.exe" capture_ratio_starts_square_and_applies_explicitly capture_ratio_free_requires_apply_and_survives_restart capture_ratio_remembers_applied_values_only capture_ratio_constrains_initial_drag 2>&1
+    # Windows GUI executables do not send QtTest text to this console; always request a report.
+    $reportPath = Join-Path $projectRoot 'build/msvc/test_reports/capture-ratio-baseline.txt'
+    & "$projectRoot/build/msvc/Release/jietuba_mint_tests.exe" capture_ratio_starts_square_and_applies_explicitly capture_ratio_free_requires_apply_and_survives_restart capture_ratio_remembers_applied_values_only capture_ratio_constrains_initial_drag -o "${reportPath},txt"
     $testExit = $LASTEXITCODE
-    $output | Write-Output
-    $report = $output -join "`n"
-    if ($testExit -eq 0 -or $report -notmatch '4 failed') { throw 'The four ratio regressions must fail on the prior implementation' }
+    $report = Get-Content -LiteralPath $reportPath -Raw
+    $report | Write-Output
+    if ($testExit -eq 0 -or $report -notmatch '4 failed') { throw "The four ratio regressions must fail on the prior implementation (exit $testExit)" }
 } finally {
     foreach ($file in $current.Keys) { [System.IO.File]::WriteAllBytes((Join-Path $repoRoot $file), $current[$file]) }
     Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
