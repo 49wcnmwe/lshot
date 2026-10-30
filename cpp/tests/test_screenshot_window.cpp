@@ -205,6 +205,8 @@ private slots:
 
     void init() {
         settings_->clear();
+        // Existing capture scenarios exercise arbitrary rectangles; ratio defaults have dedicated coverage.
+        config_->set_screenshot_aspect_locked(false);
         config_->set_screenshot_save_path(dir_.filePath("captures"));
         config_->set_screenshot_save_enabled(false);
         config_->set_app_setting("ocr_enabled", false);
@@ -753,7 +755,10 @@ private slots:
     // The lock keeps the selection's ratio while a corner is dragged.
     void lockingTheRatioKeepsItWhileResizing() {
         auto *window = open_with_selection();
-        window->info_panel->btn_lock->click();
+        window->info_panel->ratio_width->setValue(4);
+        window->info_panel->ratio_height->setValue(3);
+        window->info_panel->btn_lock->setChecked(true);
+        window->info_panel->btn_apply_ratio->click();
         send_mouse(window, QEvent::MouseButtonPress, Qt::LeftButton, QPoint(250, 190), Qt::LeftButton);
         send_mouse(window, QEvent::MouseMove, Qt::NoButton, QPoint(270, 195), Qt::LeftButton);
         send_mouse(window, QEvent::MouseMove, Qt::NoButton, QPoint(290, 200), Qt::LeftButton);
@@ -761,6 +766,7 @@ private slots:
         QCOMPARE(window->scene->selection_model->rect(), QRectF(50, 40, 240, 180));
         // Unlocked, the corner moves freely again.
         window->info_panel->btn_lock->click();
+        window->info_panel->btn_apply_ratio->click();
         send_mouse(window, QEvent::MouseButtonPress, Qt::LeftButton, QPoint(290, 220), Qt::LeftButton);
         send_mouse(window, QEvent::MouseMove, Qt::NoButton, QPoint(330, 280), Qt::LeftButton);
         send_mouse(window, QEvent::MouseButtonRelease, Qt::LeftButton, QPoint(330, 280), Qt::NoButton);

@@ -44,6 +44,7 @@ public:
     QDoubleSpinBox *ratio_width = nullptr, *ratio_height = nullptr;
     QPushButton *btn_rounded = nullptr;
     QPushButton *btn_lock = nullptr;
+    QPushButton *btn_apply_ratio = nullptr;
     QPushButton *btn_border = nullptr;
     QPushButton *btn_refresh = nullptr;
 signals:

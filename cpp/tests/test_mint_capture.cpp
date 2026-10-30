@@ -10,6 +10,10 @@
 #include "tools/line.h"
 #include "tools/text.h"
 #include "ui/selection_info/lock_ratio.h"
+#include "ui/selection_info/controller.h"
+#include "ui/selection_info/panel.h"
+#include "ui/mask_overlay.h"
+#include "core/export.h"
 #include "canvas/handle_editor.h"
 #include "canvas/undo.h"
 #include "core/save.h"
@@ -27,9 +31,120 @@
 #include <QTemporaryDir>
 
 using namespace jietuba;
+namespace {
+// A real capture scene without desktop capture or global shortcut registration.
+struct CaptureRatioSession {
+    QWidget owner;
+    CanvasScene scene{QImage(), QRectF(0, 0, 800, 600)};
+    CanvasView view{&scene, &owner};
+    ExportService exporter{&scene};
+    MaskOverlayWidget mask{&owner, scene.selection_model};
+    SelectionInfoPanel panel{&owner, &view};
+    SelectionInfoController controller;
+    explicit CaptureRatioSession(ToolSettingsManager &config)
+        : controller(&panel, scene.selection_model, scene.selection_item, &exporter, &mask, &owner, &config) {
+        owner.resize(800, 600);
+        view.resize(800, 600);
+    }
+    void select() { scene.preset_selection(QRectF(20, 30, 160, 80)); }
+    QRectF resize() const {
+        return scene.selection_item->resize_constraint(QRectF(20, 30, 240, 90), scene.selection_model->rect(), SelectionItem::HANDLE_BOTTOM_RIGHT);
+    }
+};
+}
 class MintCaptureTest : public QObject {
     Q_OBJECT
 private slots:
+    void capture_ratio_starts_square_and_applies_explicitly() {
+        QTemporaryDir dir;
+        QSettings storage(dir.filePath("capture.ini"), QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        CaptureRatioSession session(config);
+        session.select();
+        auto *apply = session.panel.findChild<QPushButton *>("capture_ratio_apply");
+        QVERIFY2(apply, "The capture ratio needs an explicit Apply button");
+        QVERIFY(session.panel.btn_lock->isChecked());
+        QCOMPARE(session.panel.ratio_width->value(), 1.);
+        QCOMPARE(session.panel.ratio_height->value(), 1.);
+        QCOMPARE(session.resize().size(), QSizeF(240, 240));
+        session.panel.ratio_width->setValue(4);
+        session.panel.ratio_height->setValue(3);
+        QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 80));
+        QCOMPARE(session.resize().size(), QSizeF(240, 240));
+        apply->click();
+        QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 120));
+        QCOMPARE(session.resize().size(), QSizeF(240, 180));
+    }
+    void capture_ratio_free_requires_apply_and_survives_restart() {
+        QTemporaryDir dir;
+        const auto path = dir.filePath("capture.ini");
+        {
+            QSettings storage(path, QSettings::IniFormat);
+            ToolSettingsManager config(storage);
+            CaptureRatioSession session(config);
+            session.select();
+            auto *apply = session.panel.findChild<QPushButton *>("capture_ratio_apply");
+            QVERIFY(apply);
+            session.panel.btn_lock->setChecked(false);
+            QVERIFY(!session.panel.ratio_width->isEnabled());
+            QCOMPARE(session.resize().size(), QSizeF(240, 240));
+            apply->click();
+            QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 80));
+            QCOMPARE(session.resize().size(), QSizeF(240, 90));
+        }
+        QSettings storage(path, QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        CaptureRatioSession next(config);
+        next.select();
+        QVERIFY(!next.panel.btn_lock->isChecked());
+        QCOMPARE(next.resize().size(), QSizeF(240, 90));
+    }
+    void capture_ratio_remembers_applied_values_only() {
+        QTemporaryDir dir;
+        const auto path = dir.filePath("capture.ini");
+        {
+            QSettings storage(path, QSettings::IniFormat);
+            ToolSettingsManager config(storage);
+            CaptureRatioSession session(config);
+            session.select();
+            auto *apply = session.panel.findChild<QPushButton *>("capture_ratio_apply");
+            QVERIFY(apply);
+            session.panel.ratio_width->setValue(16);
+            session.panel.ratio_height->setValue(9);
+            apply->click();
+            session.panel.ratio_width->setValue(7); // Unapplied edits must not leak into the next capture.
+            session.panel.btn_lock->setChecked(false);
+        }
+        QSettings storage(path, QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        CaptureRatioSession next(config);
+        next.select();
+        QVERIFY(next.panel.btn_lock->isChecked());
+        QCOMPARE(next.panel.ratio_width->value(), 16.);
+        QCOMPARE(next.panel.ratio_height->value(), 9.);
+        const auto resized = next.resize();
+        QVERIFY(std::abs(resized.width() / resized.height() - 16. / 9.) < .0001);
+    }
+    void capture_ratio_constrains_initial_drag() {
+        QTemporaryDir dir;
+        QSettings storage(dir.filePath("capture.ini"), QSettings::IniFormat);
+        ToolSettingsManager config(storage);
+        CaptureRatioSession session(config);
+        session.view.selection_drag->begin(QPointF(20, 30));
+        session.view.selection_drag->perform(QPointF(180, 110));
+        QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 160));
+        session.view.selection_drag->perform(QPointF(780, 590));
+        QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 570, 570));
+        session.view.selection_drag->end();
+        auto *apply = session.panel.findChild<QPushButton *>("capture_ratio_apply");
+        QVERIFY(apply);
+        session.panel.btn_lock->setChecked(false);
+        apply->click();
+        session.view.selection_drag->begin(QPointF(20, 30));
+        session.view.selection_drag->perform(QPointF(180, 110));
+        QCOMPARE(session.scene.selection_model->rect(), QRectF(20, 30, 160, 80));
+        session.view.selection_drag->end();
+    }
     void custom_defaults_and_visible_tools() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());

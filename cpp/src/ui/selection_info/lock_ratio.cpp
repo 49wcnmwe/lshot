@@ -2,6 +2,7 @@
 #include "canvas/items/selection_item.h"
 #include "core/logger.h"
 #include "core/aspect_geometry.h"
+#include <QGraphicsScene>
 
 namespace jietuba {
 LockRatioLogic::LockRatioLogic(SelectionItem *selection_item) : item_(selection_item) { install_hook(); }
@@ -18,6 +19,20 @@ void LockRatioLogic::set_enabled(bool enabled, const std::optional<QRectF> &curr
 }
 
 void LockRatioLogic::install_hook() {
+    item_->creation_constraint = [this](const QPointF &start, const QPointF &end) {
+        if (!enabled_ || !ratio_ || !valid_aspect(*ratio_)) return QRectF(start, end).normalized();
+        auto rect = aspect_drag_rect(start, end, *ratio_);
+        double width = std::max({rect.width(), 8., 8. * *ratio_});
+        double height = width / *ratio_;
+        if (const auto *scene = item_->scene()) {
+            const auto bounds = scene->sceneRect();
+            const double available_width = end.x() < start.x() ? start.x() - bounds.left() : bounds.right() - start.x();
+            const double available_height = end.y() < start.y() ? start.y() - bounds.top() : bounds.bottom() - start.y();
+            const double factor = std::clamp(std::min(available_width / width, available_height / height), 0., 1.);
+            width *= factor; height *= factor;
+        }
+        return QRectF(start, start + QPointF(end.x() < start.x() ? -width : width, end.y() < start.y() ? -height : height)).normalized();
+    };
     item_->resize_constraint = [this](const QRectF &rect, const QRectF &base, int handle) {
         if (enabled_ && ratio_ && *ratio_ > 0) return constrain(rect, base, handle);
         return rect;
@@ -38,6 +53,7 @@ QRectF LockRatioLogic::constrain(const QRectF &rect, const QRectF &base, int han
 void LockRatioLogic::uninstall() {
     if (installed_) {
         item_->resize_constraint = nullptr;
+        item_->creation_constraint = nullptr;
         installed_ = false;
     }
 }

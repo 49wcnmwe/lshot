@@ -47,7 +47,7 @@ void SelectionInfoPanel::init_ui() {
     sep_ = new QLabel;
     set_own_style(sep_, "background: rgba(255,255,255,30);");
     row_layout_->addWidget(sep_);
-    // Explicit ratio inputs: editing either locks the requested ratio.
+    // Ratio edits are a draft until Apply; unchecked means free selection.
     ratio_width = new QDoubleSpinBox(this); ratio_height = new QDoubleSpinBox(this);
     ratio_width->setObjectName("capture_ratio_width"); ratio_height->setObjectName("capture_ratio_height");
     for (auto *spin : {ratio_width, ratio_height}) {
@@ -55,13 +55,31 @@ void SelectionInfoPanel::init_ui() {
         spin->setFixedWidth(scaled(65)); spin->setKeyboardTracking(false);
         spin->setStyleSheet("QDoubleSpinBox { color:#263b34; background:#eff7f1; border:0; border-radius:4px; }");
     }
-    ratio_width->setToolTip(QString::fromUtf8("截图比例：宽，修改后等比缩放"));
-    ratio_height->setToolTip(QString::fromUtf8("截图比例：高，修改后等比缩放"));
+    ratio_width->setToolTip(QString::fromUtf8("截图比例：宽，点击应用后生效并记住"));
+    ratio_height->setToolTip(QString::fromUtf8("截图比例：高，点击应用后生效并记住"));
     auto *colon = new QLabel(":", this);
     row_layout_->addWidget(ratio_width); row_layout_->addWidget(colon); row_layout_->addWidget(ratio_height);
-    const auto apply_ratio = [this] { emit ratio_requested(ratio_width->value(), ratio_height->value()); };
-    connect(ratio_width, &QDoubleSpinBox::valueChanged, this, [apply_ratio](double) { apply_ratio(); });
-    connect(ratio_height, &QDoubleSpinBox::valueChanged, this, [apply_ratio](double) { apply_ratio(); });
+    btn_lock->setObjectName("capture_ratio_mode");
+    btn_lock->setToolTip(QString::fromUtf8("点击切换固定比例 / 自由，点击应用后生效"));
+    const auto update_mode = [this](bool locked) {
+        btn_lock->setText(QString::fromUtf8(locked ? "固定" : "自由"));
+        ratio_width->setEnabled(locked);
+        ratio_height->setEnabled(locked);
+    };
+    connect(btn_lock, &QPushButton::toggled, this, update_mode);
+    btn_lock->setChecked(true);
+    update_mode(true);
+    btn_apply_ratio = new QPushButton(QString::fromUtf8("应用"), this);
+    btn_apply_ratio->setObjectName("capture_ratio_apply");
+    btn_apply_ratio->setCursor(Qt::PointingHandCursor);
+    btn_apply_ratio->setFocusPolicy(Qt::NoFocus);
+    btn_apply_ratio->setToolTip(QString::fromUtf8("应用截图比例，并记住用于下次截图"));
+    row_layout_->addWidget(btn_apply_ratio);
+    connect(btn_apply_ratio, &QPushButton::clicked, this, [this] {
+        ratio_width->interpretText();
+        ratio_height->interpretText();
+        emit ratio_requested(btn_lock->isChecked() ? ratio_width->value() : 0., btn_lock->isChecked() ? ratio_height->value() : 0.);
+    });
     // Refresh background, rightmost.
     btn_refresh = make_btn(QString::fromUtf8("刷新背景.svg"), false, "Refresh Background");
     connect(btn_refresh, &QPushButton::pressed, this, &SelectionInfoPanel::refresh_pressed);
@@ -71,7 +89,7 @@ void SelectionInfoPanel::init_ui() {
     connect(btn_rounded, &QPushButton::toggled, this, &SelectionInfoPanel::rounded_toggled);
     connect(btn_lock, &QPushButton::toggled, this, &SelectionInfoPanel::lock_ratio_toggled);
     // Hidden until the selection is confirmed.
-    action_widgets_ = {btn_rounded, btn_lock, btn_border, sep_, ratio_width, colon, ratio_height, btn_refresh};
+    action_widgets_ = {btn_rounded, btn_lock, btn_border, sep_, ratio_width, colon, ratio_height, btn_apply_ratio, btn_refresh};
     for (auto *widget : action_widgets_) widget->hide();
     apply_scale();
 }
@@ -106,6 +124,10 @@ void SelectionInfoPanel::apply_scale() {
                 QPushButton:checked { background: rgba(40,120,82,45); }
             )").arg(radius).arg(padding));
     }
+    btn_lock->setFixedWidth(scaled(66));
+    btn_apply_ratio->setFixedSize(scaled(46), btn_sz);
+    btn_apply_ratio->setStyleSheet(QString("QPushButton { color:white; background:#287852; border:0; border-radius:%1px; padding:0; } QPushButton:hover { background:#206643; }").arg(radius));
+    for (auto *spin : {ratio_width, ratio_height}) spin->setFixedWidth(scaled(65));
     sep_->setFixedSize(1, scaled(BASE_SEP_HEIGHT));
     label_spacer_->changeSize(scaled(5), 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
     row_layout_->invalidate();
